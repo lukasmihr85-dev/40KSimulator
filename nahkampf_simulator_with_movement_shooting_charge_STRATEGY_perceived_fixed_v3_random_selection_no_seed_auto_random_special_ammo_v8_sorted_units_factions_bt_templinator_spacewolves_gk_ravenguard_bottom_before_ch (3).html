@@ -1,0 +1,2795 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Melee Simulator</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --panel: rgba(11, 18, 32, 0.82);
+      --panel2: rgba(10, 16, 28, 0.72);
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --border: rgba(255,255,255,0.10);
+      --axis: rgba(255,255,255,0.16);
+      --good: #34d399;
+      --bad: #fb7185;
+      --accent: #60a5fa;
+      --shadow: 0 18px 60px rgba(0,0,0,0.55);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(30, 58, 138, 0.22), transparent 55%),
+        radial-gradient(900px 600px at 85% 15%, rgba(16, 185, 129, 0.12), transparent 55%),
+        radial-gradient(900px 700px at 40% 85%, rgba(244, 63, 94, 0.10), transparent 60%),
+        var(--bg);
+    }
+    header {
+      padding: 18px 16px 14px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(15,23,42,0.78), rgba(7,11,18,0.0));
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(8px);
+    }
+    header .top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0.2px;
+    }
+    header .hint {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.35;
+    }
+
+    main {
+      padding: 16px;
+      max-width: 1520px;
+      margin: 0 auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    @media (min-width: 1100px) {
+      .grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .full {
+        grid-column: 1 / -1;
+      }
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card .hd {
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: linear-gradient(180deg, rgba(15,23,42,0.65), rgba(11,18,32,0.0));
+    }
+    .card .hd .title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .card .hd .title strong {
+      font-size: 14px;
+      letter-spacing: 0.2px;
+    }
+    .card .hd .sub {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(2,6,23,0.35);
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .controls {
+      padding: 12px;
+      background: var(--panel2);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    @media (min-width: 840px) {
+      .row {
+        grid-template-columns: 1.35fr 1.35fr 0.9fr 0.9fr 0.9fr 0.9fr;
+      }
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    select, input {
+      width: 100%;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(2, 6, 23, 0.35);
+      color: var(--text);
+      outline: none;
+    }
+    select:focus, input:focus {
+      border-color: rgba(96,165,250,0.55);
+      box-shadow: 0 0 0 3px rgba(96,165,250,0.10);
+    }
+    .unitSearch { margin-top: 8px; }
+    .actions {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    @media (min-width: 840px) {
+      .actions {
+        grid-template-columns: 220px 1fr;
+        align-items: center;
+      }
+    }
+    button {
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(96,165,250,0.55);
+      background: rgba(96,165,250,0.14);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    button:hover {
+      background: rgba(96,165,250,0.22);
+    }
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    
+    .btnCol {
+      display: grid;
+      gap: 10px;
+    }
+    button.secondary {
+      border-color: rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+    }
+    button.secondary:hover {
+      background: rgba(255,255,255,0.10);
+    }
+.status {
+      color: var(--muted);
+      font-size: 12.5px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .bar {
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.10);
+      overflow: hidden;
+      background: rgba(2,6,23,0.25);
+      margin-top: 8px;
+    }
+    .bar > div {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, rgba(96,165,250,0.85), rgba(52,211,153,0.85));
+      transition: width 120ms linear;
+    }
+
+    .list {
+      max-height: 660px;
+      overflow: auto;
+      padding: 8px 10px 10px;
+    }
+
+    /* Expanded: Ratio results should not have its own scrollbar */
+    #listR {
+      max-height: none;
+      overflow: visible;
+    }
+        /* Combined Results A/B (single shared scrollbar on the far right) */
+    .resultsTop,
+    .resultsCols,
+    .resultsFoot {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 1100px) {
+      .resultsTop,
+      .resultsCols,
+      .resultsFoot {
+        grid-template-columns: 1fr 1fr;
+      }
+      .resultsTop > :nth-child(2),
+      .resultsCols > :nth-child(2),
+      .resultsFoot > :nth-child(2) {
+        border-left: 1px solid rgba(255,255,255,0.08);
+      }
+    }
+
+    .resultsScroll {
+      /* Expanded: no internal scrolling; page scroll handles full results */
+      max-height: none;
+      overflow-y: visible;
+      overflow-x: hidden;
+    }
+
+    /* Result lists live inside the shared scroll container */
+    .resList {
+      max-height: none;
+      overflow: visible;
+    }
+.item {
+      display: grid;
+      grid-template-columns: 290px 1fr 78px;
+      gap: 12px;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    @media (max-width: 720px) {
+      .item {
+        grid-template-columns: 1fr;
+        gap: 6px;
+        padding: 10px 0;
+      }
+    }
+    .label {
+      font-size: 13px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .value {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+      letter-spacing: 0.1px;
+      white-space: nowrap;
+    }
+    .value.good { color: var(--good); }
+    .value.bad { color: var(--bad); }
+
+    .hbar {
+      position: relative;
+      height: 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(2,6,23,0.25);
+      overflow: hidden;
+    }
+    .hbar::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 1px;
+      background: var(--axis);
+      pointer-events: none;
+    }
+    .fill-pos, .fill-neg {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      border-radius: 999px;
+    }
+    .fill-pos {
+      left: 50%;
+      width: 0%;
+      background: rgba(52,211,153,0.85);
+    }
+    .fill-neg {
+      right: 50%;
+      width: 0%;
+      background: rgba(251,113,133,0.85);
+    }
+
+    .foot {
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 12px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      background: rgba(2,6,23,0.18);
+    }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      font-size: 12.5px;
+      color: var(--text);
+      line-height: 1.35;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    /* Linked scrolling: show only one scrollbar (Result A), keep Result B in sync */
+    #listB {
+      scrollbar-width: none;      /* Firefox */
+      -ms-overflow-style: none;   /* IE/Edge legacy */
+    }
+    #listB::-webkit-scrollbar {   /* Chrome/Safari */
+      width: 0;
+      height: 0;
+    }
+
+/* First Turn segmented buttons */
+.ftRow {
+  margin-top: 12px;
+}
+.ftCell {
+  grid-column: 1 / -1;
+}
+@media (min-width: 840px) {
+  .ftCell {
+    grid-column: 1 / 3; /* under Selection A + B */
+  }
+}
+.seg {
+  display: flex;
+  gap: 10px;
+}
+button.segBtn {
+  width: auto;
+  flex: 1;
+  padding: 10px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(2, 6, 23, 0.35);
+  font-weight: 800;
+  letter-spacing: 0.15px;
+}
+button.segBtn:hover {
+  background: rgba(255,255,255,0.06);
+}
+button.segBtn.active {
+  border-color: rgba(96,165,250,0.70);
+  background: rgba(96,165,250,0.20);
+}
+.ftHint {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+
+/* Start Distance segmented buttons */
+.sdRow { margin-top: 12px; }
+.sdCell { grid-column: 1 / -1; }
+@media (min-width: 840px) {
+  .sdCell { grid-column: 1 / 3; } /* under Selection A + B */
+}
+.seg.wrap { flex-wrap: wrap; }
+.seg.wrap button.segBtn { flex: 1 1 140px; }
+
+/* Random selection button */
+.rsRow { margin-top: 12px; }
+.rsCell { grid-column: 1 / -1; }
+@media (min-width: 840px) {
+  .rsCell { grid-column: 1 / 3; } /* under Selection A + B */
+}
+
+  </style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>Melee Simulator</h1>
+    <div class="pill">Red = negative · Green = positive · Axis = 0%</div>
+  </div>
+  <div class="hint">
+    Point-equalized (LCM): ModelsA = PointsB / gcd(PointsA,PointsB), ModelsB = PointsA / gcd(PointsA,PointsB). After MaxRounds, score = point advantage from surviving models: (RemPointsA − RemPointsB) / TotalPoints · 100. No morale.
+  </div>
+</header>
+
+<main>
+  <div class="card full">
+    <div class="controls">
+      <div class="row">
+        <div>
+          <label>Selection A</label>
+          <select id="unitA"></select>
+          <input id="unitASearch" class="unitSearch" type="text" placeholder="Search / type unit name…" />
+        </div>
+        <div>
+          <label>Selection B</label>
+          <select id="unitB"></select>
+          <input id="unitBSearch" class="unitSearch" type="text" placeholder="Search / type unit name…" />
+        </div>
+<div>
+          <label>Sims / Target</label>
+          <input id="trials" type="number" value="1000" min="1" max="20000" step="1" />
+        </div>
+<div>
+          <label>Melee turns</label>
+          <input id="maxRounds" type="number" value="3" min="1" max="10" step="1" />
+        </div>
+      </div>
+
+
+<div class="row rsRow">
+  <div class="rsCell">
+    <button id="randomSelectBtn" class="secondary" type="button">Random selection</button>
+  </div>
+</div>
+
+<div class="row ftRow">
+  <div class="ftCell">
+    <label>First Turn</label>
+    <div class="seg" role="group" aria-label="First Turn">
+      <button type="button" id="ftRandom" class="segBtn" aria-pressed="true">Random</button>
+      <button type="button" id="ftStrategy" class="segBtn" aria-pressed="false">Strategy Rating</button>
+    </div>
+    <div class="ftHint" id="ftHint">Random: 50/50</div>
+  </div>
+</div>
+
+
+<div class="row sdRow">
+  <div class="sdCell">
+    <label>Start Distance</label>
+    <div class="seg wrap" role="group" aria-label="Start Distance">
+      <button type="button" id="sdCC" class="segBtn" aria-pressed="true">Close Combat</button>
+      <button type="button" id="sd6" class="segBtn" aria-pressed="false">6 inch</button>
+      <button type="button" id="sd12" class="segBtn" aria-pressed="false">12 inch</button>
+      <button type="button" id="sd18" class="segBtn" aria-pressed="false">18 inch</button>
+      <button type="button" id="sd24" class="segBtn" aria-pressed="false">24 inch</button>
+      <button type="button" id="sd30" class="segBtn" aria-pressed="false">30 inch</button>
+      <button type="button" id="sd36" class="segBtn" aria-pressed="false">36 inch</button>
+    </div>
+    <div class="ftHint" id="sdHint">Close Combat: perceived 0" · real 0"</div>
+  </div>
+</div>
+
+
+      <div class="actions">
+        <div class="btnCol">
+          <button id="runBtn">Run</button>
+          <button id="stopBtn" class="secondary" type="button">Stop / Reset</button>
+        </div>
+        <div>
+          <div class="status">
+            <span id="statusLeft">Ready.</span>
+            <span class="pill" id="statusRight">—</span>
+          </div>
+          <div class="bar"><div id="barFill"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+        <div class="card full" id="resultsAB">
+      <div class="resultsTop">
+        <div class="hd resHd">
+          <div class="title">
+            <strong>Results for A1</strong>
+            <div class="sub" id="aSub">—</div>
+          </div>
+          <div class="pill" id="aMeta">—</div>
+        </div>
+        <div class="hd resHd">
+          <div class="title">
+            <strong>Results for A2</strong>
+            <div class="sub" id="bSub">—</div>
+          </div>
+          <div class="pill" id="bMeta">—</div>
+        </div>
+      </div>
+
+      <div class="resultsScroll" id="resultsScrollAB">
+        <div class="resultsCols">
+          <div class="list resList" id="listA"></div>
+          <div class="list resList" id="listB"></div>
+        </div>
+      </div>
+
+      <div class="resultsFoot">
+        <div class="foot">Tip: If it stutters → reduce Sims/Target.</div>
+        <div class="foot">Storm Shield: covered enemies use the best available invulnerable save (e.g., 4+); uncovered enemies use the defender's base invulnerable save (e.g., 5+) if any.</div>
+      </div>
+    </div>
+
+    <div class="card full">
+      <div class="hd">
+        <div class="title">
+          <strong>Ratio comparison (A1 vs A2)</strong>
+          <div class="sub">Per opponent: Ratio = (100 + ScoreA1) / (100 + ScoreA2) (equal = 1.000×) — matches the “×” look in the screenshot.</div>
+        </div>
+        <div class="pill" id="rMeta">—</div>
+      </div>
+      <div class="list" id="listR"></div>
+      <div class="foot">
+        <pre id="summaryOut">Not calculated yet.</pre>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+let UNITS = [{"name": "Tactical Squad", "points": 15, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Scout Squad (Bolter)", "points": 13, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 4, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Scout Squad (Shotgun)", "points": 13, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 4, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Scout Squad (Bolt Pistol + CCW)", "points": 13, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 4, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Scout Squad (Sniper Rifle)", "points": 18, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 4, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Assault Squad", "points": 25, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Bike Squad", "points": 35, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Terminator Squad", "points": 42, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Terminator Assault Squad (Lightning Claws)", "points": 42, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Terminator Assault Squad (Thunder Hammer + Storm Shield)", "points": 42, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": true, "nemesis": false, "fast": false}, {"name": "Templinator Squad Hit", "points": 42, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": true, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Templinator Squad Wound", "points": 42, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Templinator Assault Squad (Lightning Claws) Hit", "points": 42, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": true, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Templinator Assault Squad (Lightning Claws) Wound", "points": 42, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Templinator Assault Squad (Thunder Hammer + Storm Shield) Hit", "points": 42, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": true, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": true, "nemesis": false, "fast": false}, {"name": "Veteran Space Marine Squad (Bolter, No Terminator Honors)", "points": 18, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Veteran Space Marine Squad (Bolter, With Terminator Honors)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Veteran Space Marine Squad (Bolt Pistol + CCW, No Terminator Honors)", "points": 18, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Veteran Space Marine Squad (Bolt Pistol + CCW, With Terminator Honors)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Legion of the Damned (Bolter)", "points": 20, "WS": 5, "S": 4, "T": 4, "W": 1, "I": 5, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Legion of the Damned (Bolt Pistol + CCW)", "points": 20, "WS": 5, "S": 4, "T": 4, "W": 1, "I": 5, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Blood Claws", "points": 14, "WS": 3, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": true, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Grey Hunters (Bolter)", "points": 18, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Grey Hunters (Bolt Pistol + CCW)", "points": 17, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Grey Knights", "points": 46, "WS": 5, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": true, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": true, "fast": false}, {"name": "Grey Knights Assault Squad", "points": 46, "WS": 5, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": false, "nemesis": true, "fast": false}, {"name": "Raven Guard Assault Squad (No Terminator Honors)", "points": 58, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": true, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Raven Guard Assault Squad (With Terminator Honors)", "points": 68, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": true, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Chaos Space Marines (Bolter)", "points": 15, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Chaos Space Marines (Bolt Pistol + CCW)", "points": 15, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Khorne Berzerkers", "points": 20, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": true, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Plague Marines (Bolter)", "points": 19, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": true, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Plague Marines (Bolt Pistol + CCW)", "points": 19, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": true, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Thousand Sons", "dust": true, "points": 23, "WS": 4, "S": 4, "T": 4, "W": 2, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": true, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Chaos Space Marine Terminators (Power Weapon, TL Bolter)", "points": 36, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": true, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Chaos Space Marine Terminators (Lightning Claw, TL Bolter)", "points": 41, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Chaos Space Marine Terminators (Power Fist, TL Bolter)", "points": 41, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Chaos Space Marine Bike  Squad", "points": 35, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Khorne Terminators (Power Weapon, TL Bolter)", "points": 56, "WS": 4, "S": 5, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": true, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Khorne Terminators (Lightning Claw, TL Bolter)", "points": 61, "WS": 4, "S": 5, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Khorne Terminators (Power Fist, TL Bolter)", "points": 61, "WS": 4, "S": 5, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Plague Terminators  (Power Weapon, TL Bolter)", "points": 56, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": true, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Plague Terminators  (Lightning Claw, TL Bolter)", "points": 61, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Plague Terminators  (Power Fist, TL Bolter)", "points": 61, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Thousand Sons Terminators  (Power Weapon, TL Bolter)", "dust": true, "points": 56, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": true, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Thousand Sons Terminators  (Lightning Claw, TL Bolter)", "dust": true, "points": 61, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Thousand Sons Terminators  (Power Fist, TL Bolter)", "dust": true, "points": 61, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Noise Marine Terminators  (Power Weapon, TL Bolter)", "points": 56, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 3, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": true, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Noise Marine Terminators  (Power Weapon, Sonar Weapon)", "points": 66, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 3, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": true, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Noise Marine Terminators  (Lightning Claw, TL Bolter)", "points": 61, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 3, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Noise Marine Terminators  (Lightning Claw, Sonar Weapon)", "points": 71, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 3, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Noise Marine Terminators  (Power Fist, TL Bolter)", "points": 61, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 3, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Noise Marine Terminators  (Power Fist, Sonar Weapon)", "points": 71, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 3, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Chaos Space Marine Veterans (Bolter)", "points": 18, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Chaos Space Marine Veterans (Bolt Pistol + CCW)", "points": 18, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Chaos Space Marine Veterans (retinue) (Bolter)", "points": 33, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Chaos Space Marine Veterans (retinue) (Bolt Pistol + CCW)", "points": 33, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Chaos Space Marine Veterans (retinue) (Bolt Pistol + Power Weapon)", "points": 43, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Chosen of Khorne", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": true, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "ULTRA Berzerkers", "points": 133, "WS": 4, "S": 5, "T": 6, "W": 1, "I": 4, "A": 5, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": true, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Abomination (Damned) (Bolter)", "points": 22, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": 6, "Psv": null, "berzerk_charge": false, "death_spasm": true, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Abomination (Damned) (Bolt Pistol + CCW)", "points": 22, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": 6, "Psv": null, "berzerk_charge": false, "death_spasm": true, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Abomination (Minotaurs) (Bolter)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 3, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": true, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Abomination (Minotaurs) (Bolt Pistol + CCW)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 3, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": true, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Abomination (Dragon) (Bolter)", "points": 22, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": true, "hit_rule": false, "wound_rule": false, "rending": true, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Abomination (Dragon) (Bolt Pistol + CCW)", "points": 22, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": true, "hit_rule": false, "wound_rule": false, "rending": true, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Abomination (Anteus) (Bolter)", "points": 22, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": true, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Abomination (Anteus) (Bolt Pistol + CCW)", "points": 22, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": true, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Tactical Squad (Damned)", "points": 20, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": 6, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Tactical Squad (Minotaurs)", "points": 25, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Tactical Squad (Anteus)", "points": 20, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Assault Squad (Damned)", "points": 30, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": 6, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Assault Squad (Minotaurs)", "points": 35, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Assault Squad (Dragon)", "points": 30, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": true, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Assault Squad (Anteus)", "points": 30, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Bike Squad (Damned)", "points": 40, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": 6, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Bike Squad (Minotaurs)", "points": 45, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Bike Squad (Anteus)", "points": 40, "WS": 4, "S": 4, "T": 6, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Deathwatch Squad (Standard Ammo)", "points": 20, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Deathwatch Squad (Metal Storm Ammo)", "points": 25, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Deathwatch Squad (Inferno Ammo)", "points": 25, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Deathwatch Squad (Kraken Ammo)", "points": 25, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Death Company (Blood Angels) Bolter", "points": 19, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": 4, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Death Company (Blood Angels) Bolt Pistol + CCW", "points": 19, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": 4, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "White Scars Veteran Bike Squad (No Terminator Honors)", "points": 38, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "White Scars Veteran Bike Squad (With Terminator Honors)", "points": 48, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Veteran Deathwatch Squad (Standard Ammo) (Bolter, No Terminator Honors)", "points": 23, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Veteran Deathwatch Squad (Standard Ammo) (Bolter, With Terminator Honors)", "points": 33, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Veteran Deathwatch Squad (Metal Storm Ammo) (Bolter, No Terminator Honors)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Veteran Deathwatch Squad (Metal Storm Ammo) (Bolter, With Terminator Honors)", "points": 38, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Veteran Deathwatch Squad (Inferno Ammo) (Bolter, No Terminator Honors)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Veteran Deathwatch Squad (Inferno Ammo) (Bolter, With Terminator Honors)", "points": 38, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Veteran Deathwatch Squad (Kraken Ammo) (Bolter, No Terminator Honors)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Veteran Deathwatch Squad (Kraken Ammo) (Bolter, With Terminator Honors)", "points": 38, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "White Scars Bike Squad (CCW yes)", "points": 36, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "White Scars Bike Squad (CCW no)", "points": 35, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Wolf Guard (Energy Weapon, Storm Bolter)", "points": 40, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": true, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Wolf Guard (Lightning Claw, Storm Bolter)", "points": 45, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Assault Squad (Black Templars) (Pistol + CCW) (Hit)", "points": 25, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": true, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Assault Squad (Black Templars) (Pistol + CCW) (Wound)", "points": 25, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": true, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Assault Squad (Black Templars) (CCW + Shield) (Hit)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": true, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": true, "nemesis": false, "fast": true}, {"name": "Assault Squad (Black Templars) (CCW + Shield) (Wound)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": true, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": true, "nemesis": false, "fast": true}, {"name": "Black Templar Squad (Bolters) (Hit)", "points": 15, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": true, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Black Templar Squad (Bolters) (Wound)", "points": 15, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": true, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Black Templars Squad (Bolt Pistol + CCW) (Hit)", "points": 15, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": true, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Black Templars Squad (Bolt Pistol + CCW) (Wound)", "points": 15, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": true, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Tactical Squad (Blood Angels)", "points": 15, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Veteran Space Marine Squad (Blood Angels) (Bolter, No Terminator Honors)", "points": 18, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Veteran Space Marine Squad (Blood Angels) (Bolter, With Terminator Honors)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Veteran Space Marine Squad (Blood Angels) (Bolt Pistol + CCW, No Terminator Honors)", "points": 18, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Veteran Space Marine Squad (Blood Angels) (Bolt Pistol + CCW, With Terminator Honors)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Noise Marines", "points": 30, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Berzerker Bike Squad", "points": 45, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 3, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": true, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Noise Marines (CCW yes) (Mark yes)", "points": 50, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 3, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Noise Marines (CCW yes) (Mark no)", "points": 45, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Noise Marines (Sonar) (Mark yes)", "points": 50, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 3, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Noise Marines (Sonar) (Mark no)", "points": 45, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Khorne  Berzerkers (retinue) (Mark no)", "points": 38, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": true, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Khorne  Berzerkers (retinue) (Mark yes)", "points": 43, "WS": 4, "S": 5, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": true, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Plague Marines (Bolter) (retinue)", "points": 34, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": true, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Plague Marines (Bolt Pistol + CCW) (retinue)", "points": 34, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": true, "black_rage": false, "raven_guard": false, "istvaan": true, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Deathwatch Kill Team (Bolter + CCW, No Terminator Honors)", "points": 20, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Deathwatch Kill Team (Bolter + CCW, With Terminator Honors)", "points": 30, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Deathwatch Kill Team (Bolter + Power Weapon, No Terminator Honors)", "points": 35, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": true, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Deathwatch Kill Team (Bolter + Power Weapon, With Terminator Honors)", "points": 35, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": true, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Deathwatch Kill Team (Bolter + Lightning Claw, No Terminator Honors)", "points": 45, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Deathwatch Kill Team (Bolter + Lightning Claw, With Terminator Honors)", "points": 45, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Deathwatch Kill Team (Bolter + Power Fist, No Terminator Honors)", "points": 45, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Deathwatch Kill Team (Bolter + Power Fist, With Terminator Honors)", "points": 45, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Deathwatch Kill Team (Pair Lightning Claw, No Terminator Honors)", "points": 50, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Deathwatch Kill Team (Pair Lightning Claw, With Terminator Honors)", "points": 50, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Tactical Grey Knight Squad", "points": 25, "WS": 5, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": true, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": true, "fast": false}, {"name": "Terminator Squad (Damned)", "points": 47, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Terminator Squad (Minotaurs)", "points": 52, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 3, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Terminator Squad (Anteus)", "points": 52, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Terminator Assault Squad (Lightning Claws) (Damned)", "points": 47, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Terminator Assault Squad (Lightning Claws) (Minotaurs)", "points": 52, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 3, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Terminator Assault Squad (Lightning Claws) (Anteus)", "points": 47, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Terminator Assault Squad (Thunder Hammer + Storm Shield) (Damned)", "points": 47, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": true, "nemesis": false, "fast": false}, {"name": "Terminator Assault Squad (Thunder Hammer + Storm Shield) (Minotaurs)", "points": 52, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 3, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": true, "nemesis": false, "fast": false}, {"name": "Terminator Assault Squad (Thunder Hammer + Storm Shield) (Anteus)", "points": 47, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": true, "storm_shield": true, "nemesis": false, "fast": false}, {"name": "Terminator Assault Squad (Lightning Claws) (Blood Angels)", "points": 42, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 2, "Ivs": 5, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": false, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": true, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Honor Guard (Blood Angels) (Bolter, No Terminator Honors, Jump Pack nein)", "points": 18, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Honor Guard (Blood Angels) (Bolter, No Terminator Honors, Jump Pack ja)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Honor Guard (Blood Angels) (Bolter, With Terminator Honors, Jump Pack nein)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Honor Guard (Blood Angels) (Bolter, With Terminator Honors, Jump Pack ja)", "points": 38, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Honor Guard (Blood Angels) (Bolt Pistol + CCW, No Terminator Honors, Jump Pack nein)", "points": 18, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Honor Guard (Blood Angels) (Bolt Pistol + CCW, No Terminator Honors, Jump Pack ja)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Honor Guard (Blood Angels) (Bolt Pistol + CCW, With Terminator Honors, Jump Pack nein)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Honor Guard (Blood Angels) (Bolt Pistol + CCW, With Terminator Honors, Jump Pack ja)", "points": 38, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Honor Guard (Blood Angels) (Bolt Pistol + Power Weapon, No Terminator Honors, Jump Pack nein)", "points": 28, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": true, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Honor Guard (Blood Angels) (Bolt Pistol + Power Weapon, No Terminator Honors, Jump Pack ja)", "points": 38, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": true, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Honor Guard (Blood Angels) (Bolt Pistol + Power Weapon, With Terminator Honors, Jump Pack nein)", "points": 38, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": true, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Honor Guard (Blood Angels) (Bolt Pistol + Power Weapon, With Terminator Honors, Jump Pack ja)", "points": 48, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 2, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": true, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Scout Squad (Bolter) (Blood Angels)", "points": 13, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 4, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Scout Squad (Shotgun) (Blood Angels)", "points": 13, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 4, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Scout Squad (Bolt Pistol + CCW) (Blood Angels)", "points": 13, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 4, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": true, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Scout Squad (Sniper Rifle) (Blood Angels)", "points": 18, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 4, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": false}, {"name": "Bike Squad (Blood Angels)", "points": 35, "WS": 4, "S": 4, "T": 5, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}, {"name": "Assault Squad (Blood Angels)", "points": 25, "WS": 4, "S": 4, "T": 4, "W": 1, "I": 4, "A": 1, "Sv": 3, "Ivs": null, "Psv": null, "berzerk_charge": false, "death_spasm": false, "hit_rule": false, "wound_rule": false, "rending": false, "slow": false, "true_grit": false, "blight": false, "black_rage": true, "raven_guard": false, "istvaan": false, "axe_khorne": false, "additional_ccw": false, "heavy_ccw": false, "power_weapon": false, "lightning_claw": false, "power_fist": false, "storm_shield": false, "nemesis": false, "fast": true}];
+
+
+// ------------------------------
+// Unit ordering (UI friendliness)
+// Requested order:
+// 1) normale Space Marines (generic)
+// 2) Black Templars / Templinator (unter generischen Space Marines)
+// 3) Space Wolves (Grey Hunters / Blood Claws / Wolf Guard)
+// 4) Blood Angels
+// 5) Deathwatch
+// 6) Cursed (Abominations)
+// danach egal — Chaos weiter unten: erst unspezifisch, dann Khorne, Tzeentch, Nurgle, Slaanesh
+// ------------------------------
+function unitGroupRank(u) {
+  const n = (u && u.name ? u.name : "").toLowerCase();
+
+  // Loyalists first
+  // Black Templars / Templinator should sit directly under generic Space Marines
+  if (n.includes("black templars") || n.includes("black templar") || n.includes("templinator")) return 0.5;
+
+
+  // Space Wolves: keep the core units together (some entries don't contain the faction name)
+  if (n.includes("grey hunters") || n.includes("blood claws") || n.includes("wolf guard") || n.includes("space wolves")) return 0.75;
+  if (n.includes("blood angels")) return 1;
+  if (n.includes("deathwatch")) return 2;
+  if (n.includes("abomination") || n.includes("anteus") || n.includes("minotaurs") || n.includes("damned") || n.includes("dragon") || n.includes("cursed")) return 3;
+
+  // Grey Knights & Raven Guard: sort down, but still before Chaos
+  if (n.includes("grey knights") || n.includes("grey knight") || n.includes("raven guard")) return 4;
+
+  // Chaos later (undivided before the gods)
+  const looksChaos =
+    n.includes("chaos") ||
+    n.includes("khorne") || n.includes("berzerk") ||
+    n.includes("thousand sons") || n.includes("tzeentch") ||
+    n.includes("plague") || n.includes("nurgle") ||
+    n.includes("noise") || n.includes("slaanesh") ||
+    n.includes("daemon") || n.includes("demon");
+
+  if (looksChaos) {
+    if (n.includes("chaos")) return 5; // unspezifisches Chaos
+    if (n.includes("khorne") || n.includes("berzerk") || u.axe_khorne || u.berzerk_charge) return 6;
+    if (n.includes("thousand sons") || n.includes("tzeentch")) return 7;
+    if (n.includes("plague") || n.includes("nurgle") || u.blight) return 8;
+    if (n.includes("noise") || n.includes("slaanesh")) return 9;
+    return 5;
+  }
+
+  // Default: normale Space Marines
+  return 0;
+}
+
+
+function unitTypeRank(u) {
+  const raw = (u && u.name ? u.name : "").toLowerCase();
+  const n = raw;
+
+  // Desired order inside each chapter/order:
+  // tactical → scouts → veteran → terminator → assault → bike
+  //
+  // Notes:
+  // - Bikes should always end up in the bike bucket, even if the name also contains "veteran".
+  // - Terminator Assault should stay in the terminator bucket (not assault).
+  // - Avoid false-positives from "Terminator Honors" (that's not a Terminator unit).
+
+  // Space Wolves explicit mapping (some entries don't include the faction name)
+  if (n.includes("grey hunters")) return 0;   // tactical-equivalent
+  if (n.includes("blood claws")) return 4;    // assault-equivalent
+  if (n.includes("wolf guard")) return 2;     // veteran-equivalent
+
+  // Terminators (incl. Templinators) — but not "Terminator Honors"
+  const isTerminator =
+    n.includes("templinator") ||
+    (n.includes("terminator") && !n.includes("terminator honors"));
+  if (isTerminator) return 3;
+
+  // Bikes (always last bucket, even for Veteran Bike units)
+  if (n.includes("bike")) return 5;
+
+  // Tactical / line troops (also catches Crusader / Black Templars squad naming)
+  if (
+    n.includes("tactical") ||
+    n.includes("crusader") ||
+    n.includes("black templar squad") ||
+    n.includes("black templars squad")
+  ) return 0;
+
+  // Scouts
+  if (n.includes("scout")) return 1;
+
+  // Veterans
+  if (n.includes("veteran") || n.includes("sternguard") || n.includes("company veteran")) return 2;
+
+  // Assault
+  if (n.includes("assault")) return 4;
+
+  // Everything else goes last inside the group
+  return 6;
+}
+
+function orderUnitsForUI(units) {
+  return units
+    .map((u, i) => ({
+      u,
+      i,
+      g: unitGroupRank(u),
+      t: unitTypeRank(u),
+      key: (u && u.name ? u.name : "").toLowerCase()
+    }))
+    .sort((a, b) => {
+      if (a.g !== b.g) return a.g - b.g;
+
+      // Within the same group: enforce preferred unit-type order
+      if (a.t !== b.t) return a.t - b.t;
+
+      // Within the same type: alphabetical by name (stable fallback to original index)
+      if (a.key < b.key) return -1;
+      if (a.key > b.key) return 1;
+      return a.i - b.i;
+    })
+    .map(x => x.u);
+}
+
+UNITS = orderUnitsForUI(UNITS);
+
+
+// ------------------------------
+// Ranged weapon profiles (not used yet)
+// Added per user spec: Bolter, Bolt Pistol, Shotgun, Sniper Rifle, Storm Bolter,
+// Twin-Linked Bolter, Sonar Weapon.
+//
+// These profiles are intentionally "data only" for now.
+// Movement + shooting resolution (BS, hit/wound/saves, casualties, etc.) will be implemented later.
+// ------------------------------
+const RANGED_WEAPONS = {
+  bolter: {
+    name: "Bolter",
+    strength: 4,
+    ap: 0,                 // 0 = does not ignore armor (no AP in this sim yet)
+    rerollFailedHits: false,
+    requiresStationary: false,
+    // Stationary: 2 shots at 0-12", 1 shot at 12-24"
+    // Moving:     1 shot at 0-12"
+    bands: [
+      { state: "stationary", min: 0,  max: 12, shots: 2 },
+      { state: "stationary", min: 12, max: 24, shots: 1 },
+      { state: "moving",     min: 0,  max: 12, shots: 1 }
+    ]
+  },
+
+  kraken_bolter: {
+    name: "Bolter (Kraken Ammo)",
+    strength: 4,
+    ap: 4,
+    rerollFailedHits: false,
+    requiresStationary: false,
+    // Stationary: 2 shots at 0-15", 1 shot at 15-30"
+    // Moving:     1 shot at 0-15"
+    bands: [
+      { state: "stationary", min: 0,  max: 15, shots: 2 },
+      { state: "stationary", min: 15, max: 30, shots: 1 },
+      { state: "moving",     min: 0,  max: 15, shots: 1 }
+    ]
+  },
+
+
+  metal_storm_bolter: {
+    name: "Bolter (Metal Storm)",
+    strength: 3,
+    ap: 0,
+    rerollFailedHits: false,
+    rerollFailedWounds: false,
+    requiresStationary: false,
+    // Always: 2 shots at 0-18" (moving or stationary)
+    bands: [
+      { state: "any", min: 0, max: 18, shots: 2 }
+    ]
+  },
+
+  inferno_bolter: {
+    name: "Bolter (Inferno Bolts)",
+    strength: 4,
+    ap: 0,
+    rerollFailedHits: false,
+    rerollFailedWounds: true, // re-roll failed To Wound rolls
+    requiresStationary: false,
+    // Same RoF as a normal bolter
+    // Stationary: 2 shots at 0-12", 1 shot at 12-24"
+    // Moving:     1 shot at 0-12"
+    bands: [
+      { state: "stationary", min: 0,  max: 12, shots: 2 },
+      { state: "stationary", min: 12, max: 24, shots: 1 },
+      { state: "moving",     min: 0,  max: 12, shots: 1 }
+    ]
+  },
+
+
+
+  bolt_pistol: {
+    name: "Bolt Pistol",
+    strength: 4,
+    ap: 0,
+    rerollFailedHits: false,
+    requiresStationary: false,
+    // Stationary: 2 shots at 0-12"
+    // Moving:     1 shot at 0-12"
+    bands: [
+      { state: "stationary", min: 0, max: 12, shots: 2 },
+      { state: "moving",     min: 0, max: 12, shots: 1 }
+    ]
+  },
+
+  shotgun: {
+    name: "Shotgun",
+    strength: 3,
+    ap: 0,
+    rerollFailedHits: false,
+    requiresStationary: false,
+    // Always: 2 shots at 0-12"
+    bands: [
+      { state: "any", min: 0, max: 12, shots: 2 }
+    ]
+  },
+
+  sniper_rifle: {
+    name: "Sniper Rifle",
+    strength: 3,            // fallback S for All Is Dust exception (see woundRule)
+    ap: 0,
+    rerollFailedHits: false,
+    requiresStationary: true,
+    // Only stationary: 1 shot at 0-36"
+    bands: [
+      { state: "stationary", min: 0, max: 36, shots: 1 }
+    ],
+    // Wounds always on 4+, except vs "All Is Dust" (to be defined in later rules)
+    woundRule: { type: "always", target: 4, except: ["all_is_dust"] }
+  },
+
+  storm_bolter: {
+    name: "Storm Bolter",
+    strength: 4,
+    ap: 0,
+    rerollFailedHits: false,
+    requiresStationary: false,
+    // Always: 2 shots at 0-24"
+    bands: [
+      { state: "any", min: 0, max: 24, shots: 2 }
+    ]
+  },
+
+  tl_bolter: {
+    name: "Twin-Linked Bolter",
+    strength: 4,
+    ap: 0,
+    rerollFailedHits: true, // TL: reroll failed hits
+    requiresStationary: false,
+    // Same bands as a normal bolter
+    bands: [
+      { state: "stationary", min: 0,  max: 12, shots: 2 },
+      { state: "stationary", min: 12, max: 24, shots: 1 },
+      { state: "moving",     min: 0,  max: 12, shots: 1 }
+    ]
+  },
+
+  sonar_weapon: {
+    name: "Sonar Weapon",
+    strength: 4,
+    ap: 0,
+    rerollFailedHits: false,
+    requiresStationary: false,
+    // Stationary: 3 shots at 0-36"
+    // Moving:     2 shots at 0-24"
+    bands: [
+      { state: "stationary", min: 0, max: 36, shots: 3 },
+      { state: "moving",     min: 0, max: 24, shots: 2 }
+    ]
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Movement + shooting helpers (implemented per user rules)
+//
+// Turn structure (per player turn):
+//  1) Movement: either stand still (0") or move up to MoveMax (whole inches).
+//  2) Shooting: if moved (any distance) counts as "moving" for weapon profiles.
+//  3) Assault move: if distance to enemy <= 6", charge to 0" and gain charge bonus.
+//
+// Notes:
+// - "Fast" units can move up to 12"; everyone else up to 6" (charge range is always 6").
+// - We currently use WS as a fallback for BS (many lists have WS=BS).
+// - Ranged weapons in this build never ignore armour (AP is not modeled yet).
+// ---------------------------------------------------------------------------
+function isFast(u) {
+  if (!u) return false;
+  // If the unit has an explicit FAST flag (true/false), trust it.
+  if (typeof u.fast === "boolean") return u.fast;
+
+  // Fallback heuristics (legacy / older unit lists)
+  const n = String(u.name || "").toLowerCase();
+  return (n.includes("bike") || n.includes("jump pack") || (n.includes("assault squad") && !n.includes("terminator")));
+}
+function moveMaxInches(u) { return isFast(u) ? 12 : 6; }
+
+// Simple "close in / charge ASAP" behaviour:
+// - If already within charge range (<=6"), stay stationary to maximize stationary shooting.
+// - Otherwise move just enough to reach 6" if possible, else move full MoveMax.
+
+// ---------------------------------------------------------------------------
+// Perceived distance + "ideal" turn-by-turn strategy
+//
+// - Real distance is rolled from Start Distance: base..base+2.
+// - Each side plans using its own perceived distance (initially = base).
+// - Learning effect:
+//    * If a player attempts to shoot, but is actually out of range (0 shots possible),
+//      their perceived distance becomes the real distance (from then on).
+//    * If a player intends to charge (perceived <= 6") but is actually out of range,
+//      they also learn the real distance.
+//
+// Strategy (fast heuristic, computed each player turn):
+// - Enumerate a small set of candidate moves (whole inches) including:
+//    * stand still
+//    * move full
+//    * move to just outside charge range (7")
+//    * move to just outside enemy move+charge threat
+//    * move to "sweet spots" for double-shot bands (e.g., <=15" but >12")
+// - For each candidate, compute a quick expected value (shooting + optional charge exchange),
+//   plus a 1-turn lookahead for the opponent's best reply (both use perceived distance).
+// ---------------------------------------------------------------------------
+const PRE_MELEE_MAX_TURNS = 10;
+const STRATEGY = { gamma: 0.70 };
+
+function iClamp(v, lo, hi) {
+  v = v | 0;
+  lo = lo | 0;
+  hi = hi | 0;
+  return (v < lo) ? lo : (v > hi) ? hi : v;
+}
+function weaponMaxRange(weapon) {
+  if (!weapon || !weapon.bands) return 0;
+  let m = 0;
+  for (const b of weapon.bands) m = Math.max(m, b.max | 0);
+  return m | 0;
+}
+function bestStationaryBand(weapon) {
+  if (!weapon || !weapon.bands) return null;
+  let best = null;
+  for (const b of weapon.bands) {
+    if (b.state !== "stationary" && b.state !== "any") continue;
+    if (!best || (b.shots|0) > (best.shots|0) || ((b.shots|0) === (best.shots|0) && (b.max|0) > (best.max|0))) {
+      best = { min: b.min|0, max: b.max|0, shots: b.shots|0 };
+    }
+  }
+  return best;
+}
+function bestSaveNeeded(defn) {
+  const armour = (defn && defn.Sv != null) ? (defn.Sv|0) : null;
+  const inv = invSaveFor(defn);
+  if (armour == null && inv == null) return null;
+  if (armour == null) return inv|0;
+  if (inv == null) return armour|0;
+  // choose the better probability (lower needed)
+  return (pFromNeeded(inv) > pFromNeeded(armour)) ? (inv|0) : (armour|0);
+}
+function expectedUnsavedFromHits(defn, expWounds) {
+  if (expWounds <= 0) return 0.0;
+  const saveNeeded = bestSaveNeeded(defn);
+  const pSave = (saveNeeded != null) ? pFromNeeded(saveNeeded) : 0.0;
+
+  // Approximate pseudo-inv / FNP as a second save after failing the first.
+  const pPseudo = (defn && defn.Psv != null) ? pFromNeeded(defn.Psv|0) : 0.0;
+
+  const pUns = (1.0 - pSave) * (1.0 - pPseudo);
+  return expWounds * pUns;
+}
+
+function expectedShootingWounds(att, defn, woundsAtt, distPer, moved) {
+  if (!att || !defn) return 0.0;
+  if (hasDust(defn)) return 0.0;
+  if (woundsAtt <= 0) return 0.0;
+  distPer = distPer | 0;
+  if (distPer <= 0) return 0.0;
+
+  const wKey = inferRangedWeaponKey(att);
+  const w = wKey ? RANGED_WEAPONS[wKey] : null;
+  if (!w) return 0.0;
+
+  if (w.requiresStationary && moved) return 0.0;
+
+  const spm = shotsPerModelAtDistance(w, distPer, !!moved);
+  if (spm <= 0) return 0.0;
+
+  const modelsAtt = Math.max(0.0, (woundsAtt / (att.W || 1)));
+  const totalShots = modelsAtt * spm;
+  if (totalShots <= 0) return 0.0;
+
+  const bs = (att.BS != null) ? att.BS : att.WS;
+  const needHit = bsNeeded(bs);
+  const pHit = pFromNeeded(needHit);
+  const pHitEff = w.rerollFailedHits ? (1.0 - (1.0 - pHit) * (1.0 - pHit)) : pHit;
+
+  let needW = 4;
+  if (wKey === "sniper_rifle") {
+    needW = hasAllIsDust(defn) ? woundNeeded((w.strength|0) || 3, defn.T) : 4;
+  } else {
+    needW = woundNeeded((w.strength|0) || 1, defn.T);
+  }
+  const pW = pFromNeeded(needW);
+  const pWEff = w.rerollFailedWounds ? (1.0 - (1.0 - pW) * (1.0 - pW)) : pW;
+  const expW = totalShots * pHitEff * pWEff;
+
+  // AP in EV estimate: AP N ignores armour saves of N+ (invul still allowed)
+  let armour = (defn && defn.Sv != null) ? (defn.Sv|0) : null;
+  if ((w.ap|0) > 0 && armour != null && armour >= (w.ap|0)) armour = null;
+
+  const inv = invSaveFor(defn);
+  let saveNeeded = null;
+  if (armour != null) saveNeeded = armour;
+  if (inv != null) {
+    const invN = inv|0;
+    if (saveNeeded == null) saveNeeded = invN;
+    else saveNeeded = (pFromNeeded(invN) > pFromNeeded(saveNeeded)) ? invN : (saveNeeded|0);
+  }
+
+  const pSave = (saveNeeded != null) ? pFromNeeded(saveNeeded) : 0.0;
+  const pPseudo = (defn && defn.Psv != null) ? pFromNeeded(defn.Psv|0) : 0.0;
+  const pUns = (1.0 - pSave) * (1.0 - pPseudo);
+  return expW * pUns;
+}
+
+function expectedMeleeWounds(att, defn, woundsAtt, distPerIgnored, firstRound, isCharger) {
+  if (!att || !defn) return 0.0;
+  if (woundsAtt <= 0) return 0.0;
+
+  // Approximate models as continuous.
+  const modelsAtt = Math.max(0.0, (woundsAtt / (att.W || 1)));
+  const apm = attacksPerModel(att, !!firstRound, !!isCharger);
+  const totalAttacks = modelsAtt * apm;
+  if (totalAttacks <= 0) return 0.0;
+
+  const needHit = hitNeeded(att, defn, !!firstRound, !!isCharger);
+  const pHit = pFromNeeded(needHit);
+
+  const S_eff = effStrength(att, !!firstRound, !!isCharger);
+  const needW = woundNeeded(S_eff, defn.T);
+  const pW0 = pFromNeeded(needW);
+  const pW = att.lightning_claw ? (1.0 - (1.0 - pW0) * (1.0 - pW0)) : pW0;
+
+  const expW = totalAttacks * pHit * pW;
+  return expectedUnsavedFromHits(defn, expW);
+}
+
+function pointsPerWound(u) {
+  const w = (u && u.W) ? u.W : 1;
+  const p = (u && u.points) ? u.points : 0;
+  return (p / w);
+}
+
+function evMeleeExchangePoints(att, defn, woundsAtt, woundsDef, firstRound, attIsCharger) {
+  // Both sides strike in the same melee resolution (initiative ordering is ignored in this EV).
+  const expToDef = expectedMeleeWounds(att, defn, woundsAtt, 0, firstRound, attIsCharger);
+  const expToAtt = expectedMeleeWounds(defn, att, woundsDef, 0, firstRound, false);
+  const gain = expToDef * pointsPerWound(defn);
+  const loss = expToAtt * pointsPerWound(att);
+  return { ev: gain - loss, expToDef, expToAtt };
+}
+
+function immediateBestEV(att, defn, woundsAtt, woundsDef, distPerAtt, distPerDef) {
+  // Best immediate EV for "att" on its turn while NOT in melee, using perceived distance only.
+  // Dust rule: if the defender is "dust", shooting is pointless -> always close distance and charge ASAP.
+  if (hasDust(defn)) {
+    const mvMax = moveMaxInches(att);
+    const d0 = distPerAtt | 0;
+    if (d0 <= 0) return { ev: 0.0, move: 0, wantCharge: false, distAfter: 0, expToDef: 0, expToAtt: 0 };
+    if (d0 > 0 && d0 <= 6) {
+      const ex = evMeleeExchangePoints(att, defn, woundsAtt, woundsDef, true, !att.true_grit);
+      return { ev: ex.ev, move: 0, wantCharge: true, distAfter: d0|0, expToDef: ex.expToDef, expToAtt: ex.expToAtt };
+    }
+    const mv = iClamp((d0 - 6) | 0, 1, mvMax);
+    const dAfter = Math.max(0, (d0 - mv) | 0);
+    if (dAfter > 0 && dAfter <= 6) {
+      const ex = evMeleeExchangePoints(att, defn, woundsAtt, woundsDef, true, !att.true_grit);
+      return { ev: ex.ev, move: mv|0, wantCharge: true, distAfter: dAfter|0, expToDef: ex.expToDef, expToAtt: ex.expToAtt };
+    }
+    return { ev: 0.0, move: mv|0, wantCharge: false, distAfter: dAfter|0, expToDef: 0, expToAtt: 0 };
+  }
+
+  const mvMax = moveMaxInches(att);
+  const mvMaxOpp = moveMaxInches(defn);
+  const oppThreat = (mvMaxOpp + 6) | 0;
+
+  const wKey = inferRangedWeaponKey(att);
+  const w = wKey ? RANGED_WEAPONS[wKey] : null;
+  const maxR = w ? weaponMaxRange(w) : 0;
+  const bestBand = w ? bestStationaryBand(w) : null;
+
+  // Candidate target distances (perceived)
+  const targets = new Set();
+  targets.add(distPerAtt|0);           // hold
+  targets.add(0);                      // (only relevant if already very close)
+  targets.add(6);                      // charge range
+  targets.add(7);                      // just outside charge range
+  targets.add((oppThreat + 1) | 0);    // safe vs move+charge
+
+  if (bestBand && (bestBand.shots|0) >= 2) {
+    // sweet spot: inside the high-shot band but outside opp threat (if possible)
+    if ((oppThreat + 1) <= bestBand.max) {
+      targets.add((oppThreat + 1) | 0);
+      targets.add(bestBand.max | 0);
+      // also consider the midpoint to reduce over/undershooting
+      targets.add(((oppThreat + 1 + bestBand.max) / 2) | 0);
+    } else {
+      targets.add(bestBand.max | 0);
+    }
+  }
+  if (maxR > 0) {
+    targets.add(maxR | 0);
+    targets.add((maxR - 1) | 0);
+  }
+
+  // Convert to candidate moves (whole inches)
+  const moves = [];
+  for (const t of targets) {
+    const tgt = Math.max(0, t|0);
+    const mv = iClamp((distPerAtt|0) - tgt, 0, mvMax);
+    moves.push(mv|0);
+  }
+  // Always include full move
+  moves.push(mvMax|0);
+
+  // Dedupe
+  moves.sort((a,b)=>a-b);
+  const uniqMoves = [];
+  for (let i=0;i<moves.length;i++){
+    if (i===0 || moves[i]!==moves[i-1]) uniqMoves.push(moves[i]);
+  }
+
+
+  // Rule: If you cannot shoot and cannot charge at the current perceived distance,
+  // standing still is not a legal/rational option (you must advance).
+  const canChargeHold = (distPerAtt|0) > 0 && (distPerAtt|0) <= 6;
+  let canShootHold = false;
+  if (!canChargeHold) {
+    const wKeyHold = inferRangedWeaponKey(att);
+    const wHold = wKeyHold ? RANGED_WEAPONS[wKeyHold] : null;
+    if (wHold) canShootHold = (shotsPerModelAtDistance(wHold, distPerAtt|0, false) > 0);
+  }
+  if (!canChargeHold && !canShootHold) {
+    for (let i = uniqMoves.length - 1; i >= 0; i--) {
+      if ((uniqMoves[i]|0) === 0) uniqMoves.splice(i, 1);
+    }
+    if (uniqMoves.length === 0) uniqMoves.push(mvMax|0);
+  }
+
+  let best = { ev: -1e18, move: 0, wantCharge: false, distAfter: distPerAtt|0, expToDef: 0, expToAtt: 0 };
+
+  for (const mv of uniqMoves) {
+    const moved = mv > 0;
+    const dAfter = Math.max(0, (distPerAtt - mv) | 0);
+    const dDefAfter = Math.max(0, (distPerDef - mv) | 0);
+
+    // Option 1: don't charge (even if close)
+    // Prevent "walking into base contact without charging": treat distances <=6 as 7 for this branch.
+    const dShoot = (dAfter <= 6 && dAfter > 0) ? 7 : dAfter;
+
+    const shootW = expectedShootingWounds(att, defn, woundsAtt, dShoot, moved);
+    const evShoot = shootW * pointsPerWound(defn);
+
+    // Opponent can move too, so include a soft penalty for ending inside their threat when we did NOT charge.
+    // (This is a heuristic to prefer standoff positions when melee is bad.)
+    const insideThreat = (dDefAfter > 0 && dDefAfter <= oppThreat);
+    let threatPenalty = 0.0;
+    if (insideThreat) {
+      // Estimate a single melee exchange where the opponent gets to be the charger (worst case).
+      const ex = evMeleeExchangePoints(defn, att, woundsDef, woundsAtt, true, !defn.true_grit);
+      // ex.ev is from opponent perspective; subtract a fraction of it as a penalty.
+      threatPenalty = Math.max(0, ex.ev) * 0.35;
+    }
+
+    const evNoCharge = evShoot - threatPenalty;
+    if (evNoCharge > best.ev) {
+      best = { ev: evNoCharge, move: mv|0, wantCharge: false, distAfter: dAfter, expToDef: shootW, expToAtt: 0 };
+    }
+
+    // Option 2: charge (only if perceived within 6")
+    if (dAfter > 0 && dAfter <= 6) {
+      const shootWc = expectedShootingWounds(att, defn, woundsAtt, dAfter, moved);
+      const evShootC = shootWc * pointsPerWound(defn);
+
+      // If we charge, we become the charger in the first melee exchange (unless True Grit blocks the charge bonus).
+      const ex = evMeleeExchangePoints(att, defn, woundsAtt, woundsDef, true, !att.true_grit);
+      const evCharge = evShootC + ex.ev;
+
+      if (evCharge > best.ev) {
+        best = { ev: evCharge, move: mv|0, wantCharge: true, distAfter: dAfter, expToDef: shootWc + ex.expToDef, expToAtt: ex.expToAtt };
+      }
+    }
+  }
+
+  return best;
+}
+
+function chooseMoveAndIntent(att, defn, woundsAtt, woundsDef, distPerAtt, distPerDef) {
+  // 2-ply: maximize (our best immediate EV) - gamma*(opponent best immediate EV after our action).
+  // Dust rule: if the defender is "dust", shooting cannot hurt them -> always close distance and charge ASAP.
+  if (hasDust(defn)) {
+    const mvMax = moveMaxInches(att);
+    const d0 = distPerAtt | 0;
+    if (d0 > 0 && d0 <= 6) return { move: 0, wantCharge: true };
+    if (d0 <= 0) return { move: 0, wantCharge: false };
+    const mv = iClamp((d0 - 6) | 0, 1, mvMax);
+    const dAfter = Math.max(0, (d0 - mv) | 0);
+    return { move: mv | 0, wantCharge: (dAfter > 0 && dAfter <= 6) };
+  }
+
+  const bestNow = immediateBestEV(att, defn, woundsAtt, woundsDef, distPerAtt, distPerDef);
+
+  // Evaluate all immediate-best candidates explicitly (since immediateBestEV already chose 1, we broaden slightly).
+  // We'll just enumerate candidates again, but now with the 1-turn lookahead term.
+  const mvMax = moveMaxInches(att);
+  const candidates = [];
+
+  // Use immediateBestEV's underlying candidate move set by probing around its move and common anchors.
+  const anchors = new Set([0, bestNow.move|0, mvMax|0, iClamp((distPerAtt|0) - 6, 0, mvMax), iClamp((distPerAtt|0) - 7, 0, mvMax)]);
+  for (const mv of anchors) candidates.push(mv|0);
+
+  // Dedupe & clamp
+  candidates.sort((a,b)=>a-b);
+  const uniq = [];
+  for (let i=0;i<candidates.length;i++){
+    const v=iClamp(candidates[i]|0,0,mvMax);
+    if (i===0 || v!==uniq[uniq.length-1]) uniq.push(v);
+  }
+
+
+  // Rule: If you cannot shoot and cannot charge at the current perceived distance,
+  // standing still is not a legal/rational option (you must advance).
+  const canChargeHold = (distPerAtt|0) > 0 && (distPerAtt|0) <= 6;
+  let canShootHold = false;
+  if (!canChargeHold) {
+    const wKeyHold = inferRangedWeaponKey(att);
+    const wHold = wKeyHold ? RANGED_WEAPONS[wKeyHold] : null;
+    if (wHold) canShootHold = (shotsPerModelAtDistance(wHold, distPerAtt|0, false) > 0);
+  }
+  if (!canChargeHold && !canShootHold) {
+    for (let i = uniq.length - 1; i >= 0; i--) {
+      if ((uniq[i]|0) === 0) uniq.splice(i, 1);
+    }
+    if (uniq.length === 0) uniq.push(mvMax|0);
+  }
+
+  let bestVal = -1e18;
+  let bestAct = { move: bestNow.move|0, wantCharge: bestNow.wantCharge };
+
+  for (const mv of uniq) {
+    const moved = mv > 0;
+    const dAfter = Math.max(0, (distPerAtt - mv) | 0);
+    const dDefAfter = Math.max(0, (distPerDef - mv) | 0);
+
+    // Consider both sub-actions: no charge vs charge (if possible)
+    const subActs = [{ wantCharge: false }];
+    if (dAfter > 0 && dAfter <= 6) subActs.push({ wantCharge: true });
+
+    for (const sub of subActs) {
+      // Our immediate EV (reuse immediateBestEV logic, but force this mv/subchoice)
+      let expToDef = 0.0, expToAtt = 0.0, evNow = 0.0;
+
+      const dShoot = (!sub.wantCharge && dAfter <= 6 && dAfter > 0) ? 7 : dAfter;
+      const shootW = expectedShootingWounds(att, defn, woundsAtt, dShoot, moved);
+      evNow += shootW * pointsPerWound(defn);
+      expToDef += shootW;
+
+      if (sub.wantCharge) {
+        const ex = evMeleeExchangePoints(att, defn, woundsAtt, woundsDef, true, !att.true_grit);
+        evNow += ex.ev;
+        expToDef += ex.expToDef;
+        expToAtt += ex.expToAtt;
+      }
+
+      const wAtt2 = Math.max(0.0, woundsAtt - expToAtt);
+      const wDef2 = Math.max(0.0, woundsDef - expToDef);
+
+      let oppEV = 0.0;
+      if (wAtt2 <= 0 || wDef2 <= 0) {
+        oppEV = 0.0;
+      } else if (sub.wantCharge) {
+        // Next turn will be melee without charge bonuses.
+        const exOpp = evMeleeExchangePoints(defn, att, wDef2, wAtt2, false, false);
+        oppEV = exOpp.ev;
+      } else {
+        const bOpp = immediateBestEV(defn, att, wDef2, wAtt2, dDefAfter, dAfter);
+        oppEV = bOpp.ev;
+      }
+
+      const val = evNow - STRATEGY.gamma * oppEV;
+      if (val > bestVal) {
+        bestVal = val;
+        bestAct = { move: mv|0, wantCharge: !!sub.wantCharge };
+      }
+    }
+  }
+
+  return bestAct;
+}
+
+
+function hasAllIsDust(u) {
+  const n = String(u && u.name || "").toLowerCase();
+  return n.includes("thousand sons");
+}
+
+
+function hasDust(u) {
+  if (!u) return false;
+  if (typeof u.dust === "boolean") return u.dust;
+  // fallback (legacy): treat all Thousand Sons as dust
+  const n = String(u.name || "").toLowerCase();
+  return n.includes("thousand sons");
+}
+
+function inferRangedWeaponKey(u) {
+  if (!u) return null;
+  const n = String(u.name || "").toLowerCase();
+
+  // Most specific first
+  if (n.includes("metal storm") || n.includes("metalstorm")) return "metal_storm_bolter";
+  if (n.includes("inferno")) return "inferno_bolter";
+  if (n.includes("kraken")) return "kraken_bolter";
+  if (n.includes("sniper")) return "sniper_rifle";
+  if (n.includes("shotgun")) return "shotgun";
+  // Sonic Blasters / Noise Marines use the 36"/24" profile in this sim
+  if (n.includes("noise marine") || n.includes("noise marines") || n.includes("sonic blaster") || n.includes("sonic")) return "sonar_weapon";
+  if (n.includes("sonar")) return "sonar_weapon";
+  if (n.includes("storm bolter")) return "storm_bolter";
+  if (n.includes("tl bolter") || n.includes("twin-linked")) return "tl_bolter";
+
+  // Heuristic defaults by unit type
+  if (n.includes("bike")) return "tl_bolter";
+  if (n.includes("terminator") && !n.includes("assault")) return "storm_bolter";
+  if (n.includes("assault squad") || n.includes("jump pack")) return "bolt_pistol";
+
+  // Explicit pistol / bolter last (because many strings contain "bolter")
+  if (n.includes("bolt pistol")) return "bolt_pistol";
+  if (n.includes("bolter")) return "bolter";
+  if (n.includes("tactical squad")) return "bolter";
+
+  return null;
+}
+
+function shotsPerModelAtDistance(weapon, dist, moved) {
+  if (!weapon) return 0;
+  dist = dist | 0;
+  if (dist <= 0) return 0; // no shooting in melee
+  const state = moved ? "moving" : "stationary";
+  if (weapon.requiresStationary && moved) return 0;
+
+  let best = 0;
+  for (const b of (weapon.bands || [])) {
+    if (b.state !== "any" && b.state !== state) continue;
+    if (dist >= (b.min|0) && dist <= (b.max|0)) best = Math.max(best, b.shots|0);
+  }
+  return best|0;
+}
+
+function bsNeeded(bs) {
+  // Classic: BS4 => 3+, BS3 => 4+, BS5 => 2+, BS2 => 5+
+  bs = Math.max(1, Math.min(6, bs|0));
+  return Math.min(6, Math.max(2, 7 - bs));
+}
+
+function invSaveFor(defn) {
+  let inv = defn.Ivs;
+  const invShield = defn.storm_shield ? 4 : null;
+  if (inv == null) return invShield;
+  if (invShield == null) return inv;
+  return Math.min(inv, invShield);
+}
+
+function simulateShooting(att, defn, woundsAtt, woundsDef, dist, moved, rng) {
+  if (woundsAtt <= 0 || woundsDef <= 0) return 0;
+  dist = dist | 0;
+  if (dist <= 0) return 0;
+  if (hasDust(defn)) return 0;
+
+  const wKey = inferRangedWeaponKey(att);
+  const w = wKey ? RANGED_WEAPONS[wKey] : null;
+  if (!w) return 0;
+
+  const modelsAtt = Math.ceil(woundsAtt / att.W);
+  if (modelsAtt <= 0) return 0;
+
+  const spm = shotsPerModelAtDistance(w, dist, !!moved);
+  if (spm <= 0) return 0;
+
+  const totalShots = modelsAtt * spm;
+  if (totalShots <= 0) return 0;
+
+  const bs = (att.BS != null) ? att.BS : att.WS;
+  const needHit = bsNeeded(bs);
+  const pHit = pFromNeeded(needHit);
+
+  let hits = binom(totalShots, pHit, rng);
+  if (w.rerollFailedHits) {
+    const misses = totalShots - hits;
+    if (misses > 0) hits += binom(misses, pHit, rng);
+  }
+  if (hits <= 0) return 0;
+
+  // Wound roll
+  let needW = 4;
+  if (wKey === "sniper_rifle") {
+    // Sniper: wounds on 4+, except "All Is Dust" -> use S-vs-T fallback (S=3)
+    needW = hasAllIsDust(defn) ? woundNeeded((w.strength|0) || 3, defn.T) : 4;
+  } else {
+    needW = woundNeeded((w.strength|0) || 1, defn.T);
+  }
+  const pW = pFromNeeded(needW);
+  let wounds = binom(hits, pW, rng);
+  if (w.rerollFailedWounds) {
+    const fails = hits - wounds;
+    if (fails > 0) wounds += binom(fails, pW, rng);
+  }
+  if (wounds <= 0) return 0;
+
+  // Saves (AP supported: AP N ignores armour saves of N+; invul still allowed)
+  let armour = defn.Sv;
+  if ((w.ap|0) > 0 && armour != null && armour >= (w.ap|0)) armour = null;
+
+  const inv = invSaveFor(defn);
+  const invLimit = (inv != null) ? Infinity : 0;
+  const unsaved = applySaves(wounds, armour, inv, invLimit, defn.Psv, true, rng);
+  return unsaved;
+}
+
+function $(id) { return document.getElementById(id); }
+
+
+// Random seed per run (32-bit)
+function randomSeed32() {
+  try {
+    if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+      const a = new Uint32Array(1);
+      crypto.getRandomValues(a);
+      return a[0] >>> 0;
+    }
+  } catch (_) {}
+  return (Math.random() * 4294967296) >>> 0;
+}
+
+
+
+// Yield helper: requestAnimationFrame pauses in background tabs.
+// This keeps the simulation progressing even when the tab is not visible.
+function yieldToBrowser() {
+  return new Promise((resolve) => {
+    // Visible tab: align with paint for smooth UI updates
+    if (!document.hidden && typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => resolve());
+      return;
+    }
+    // Hidden tab: use a MessageChannel (not tied to rAF) to yield without stalling
+    if (typeof MessageChannel !== "undefined") {
+      const ch = new MessageChannel();
+      ch.port1.onmessage = () => {
+        try { ch.port1.close(); ch.port2.close(); } catch (_) {}
+        resolve();
+      };
+      ch.port2.postMessage(0);
+      return;
+    }
+    // Fallback
+    setTimeout(resolve, 0);
+  });
+}
+
+
+
+// --- First Turn mode (who charges/starts round 1) ---
+const FIRST_TURN = {
+  mode: "random",            // "random" | "strategy"
+  loyalStarts: 0.627         // Strategy Rating: loyal 62.7% vs chaos 37.3%
+};
+
+function isChaos(unit) {
+  if (!unit) return false;
+  if (typeof unit.chaos !== "undefined") return !!unit.chaos; // preferred: explicit flag in unit listing
+  // Fallback heuristics for older unit lists
+  if (unit.istvaan) return true;
+  const n = String(unit.name || "").toLowerCase();
+  return (
+    n.includes("chaos") ||
+    n.includes("khorne") ||
+    n.includes("plague") ||
+    n.includes("thousand sons") ||
+    n.includes("noise") ||
+    n.includes("berzerk") ||
+    n.includes("daemon") ||
+    n.includes("herald") ||
+    n.includes("nurgle") ||
+    n.includes("tzeentch") ||
+    n.includes("slaanesh")
+  );
+}
+
+function firstTurnProbA(a, b) {
+  if (FIRST_TURN.mode !== "strategy") return 0.5;
+  const aChaos = isChaos(a);
+  const bChaos = isChaos(b);
+  if (aChaos === bChaos) return 0.5; // same side -> keep neutral
+  // loyal starts with 62.7%
+  return aChaos ? (1.0 - FIRST_TURN.loyalStarts) : FIRST_TURN.loyalStarts;
+}
+
+function updateFirstTurnUI() {
+  const r = $("ftRandom");
+  const s = $("ftStrategy");
+  const hint = $("ftHint");
+  if (!r || !s) return;
+
+  const mode = FIRST_TURN.mode;
+  r.classList.toggle("active", mode === "random");
+  s.classList.toggle("active", mode === "strategy");
+  r.setAttribute("aria-pressed", String(mode === "random"));
+  s.setAttribute("aria-pressed", String(mode === "strategy"));
+
+  if (hint) {
+    hint.textContent = (mode === "random")
+      ? "Random: 50/50"
+      : "Strategy Rating: Loyal 62.7% · Chaos 37.3%";
+  }
+}
+
+function initFirstTurnUI() {
+  const saved = localStorage.getItem("firstTurnMode");
+  if (saved === "random" || saved === "strategy") FIRST_TURN.mode = saved;
+
+  const r = $("ftRandom");
+  const s = $("ftStrategy");
+
+  if (r) r.addEventListener("click", () => {
+    FIRST_TURN.mode = "random";
+    localStorage.setItem("firstTurnMode", "random");
+    updateFirstTurnUI();
+  });
+
+  if (s) s.addEventListener("click", () => {
+    FIRST_TURN.mode = "strategy";
+    localStorage.setItem("firstTurnMode", "strategy");
+    updateFirstTurnUI();
+  });
+
+  updateFirstTurnUI();
+}
+
+
+// --- Start Distance mode (shared starting distance; rolled per sim, not yet used by melee rules) ---
+const START_DISTANCE = {
+  base: 0 // 0, 6, 12, 18, 24, 30, 36
+};
+
+function rollStartDistance(seedBase, nameA, nameB, battleIndex) {
+  const b = START_DISTANCE.base | 0;
+  if (b === 0) return 0;
+
+  // Symmetric key so A vs B and B vs A roll the same distance for the same sim index
+  const pair = [String(nameA || ""), String(nameB || "")].sort().join("|");
+  const s = (xfnv1a(`DIST|${b}|${pair}|${battleIndex|0}`) ^ (seedBase >>> 0) ^ 0xA5A5A5A5) >>> 0;
+
+  // Independent RNG so distance rolls do NOT perturb the combat RNG stream (until we actually use distance)
+  const r = mulberry32(s)();
+  const add = Math.floor(r * 3); // 0..2
+  return b + add;
+}
+
+function updateStartDistanceUI() {
+  const map = [
+    ["sdCC", 0],
+    ["sd6", 6],
+    ["sd12", 12],
+    ["sd18", 18],
+    ["sd24", 24],
+    ["sd30", 30],
+    ["sd36", 36],
+  ];
+
+  for (const [id, val] of map) {
+    const el = $(id);
+    if (!el) continue;
+    const active = (START_DISTANCE.base === val);
+    el.classList.toggle("active", active);
+    el.setAttribute("aria-pressed", String(active));
+  }
+
+  const hint = $("sdHint");
+  if (hint) {
+    hint.textContent = (START_DISTANCE.base === 0)
+      ? 'Close Combat: perceived 0" · real 0"'
+      : `${START_DISTANCE.base} inch: perceived ${START_DISTANCE.base}" · real random ${START_DISTANCE.base}–${START_DISTANCE.base + 2}" · (learning: out-of-range shot/charge reveals real)`;
+  }
+}
+
+function initStartDistanceUI() {
+  const saved = Number(localStorage.getItem("startDistanceBase"));
+  if ([0,6,12,18,24,30,36].includes(saved)) START_DISTANCE.base = saved;
+
+  const map = [
+    ["sdCC", 0],
+    ["sd6", 6],
+    ["sd12", 12],
+    ["sd18", 18],
+    ["sd24", 24],
+    ["sd30", 30],
+    ["sd36", 36],
+  ];
+
+  for (const [id, val] of map) {
+    const el = $(id);
+    if (!el) continue;
+    el.addEventListener("click", () => {
+      START_DISTANCE.base = val;
+      localStorage.setItem("startDistanceBase", String(val));
+      updateStartDistanceUI();
+    });
+  }
+
+  updateStartDistanceUI();
+}
+
+
+
+// Seeded RNG
+function xfnv1a(str) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+function mulberry32(a) {
+  return function() {
+    let t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+}
+
+// Binomial RNG (BTPE)
+function binom(n, pp, rng) {
+  n = Math.floor(n);
+  if (n <= 0) return 0;
+  if (pp <= 0) return 0;
+  if (pp >= 1) return n;
+
+  let p = Math.min(pp, 1.0 - pp);
+  let q = 1.0 - p;
+  let xnp = n * p;
+  let ix = 0;
+
+  if (xnp > 30.0) {
+    let ffm = xnp + p;
+    let m = Math.trunc(ffm);
+    let fm = m;
+
+    let xnpq = xnp * q;
+    let p1 = Math.floor(2.195 * Math.sqrt(xnpq) - 4.6 * q) + 0.5;
+    let xm = fm + 0.5;
+    let xl = xm - p1;
+    let xr = xm + p1;
+
+    let c = 0.134 + 20.5 / (15.3 + fm);
+
+    let al = (ffm - xl) / (ffm - xl * p);
+    let xll = al * (1.0 + 0.5 * al);
+
+    al = (xr - ffm) / (xr * q);
+    let xlr = al * (1.0 + 0.5 * al);
+
+    let p2 = p1 * (1.0 + c + c);
+    let p3 = p2 + c / xll;
+    let p4 = p3 + c / xlr;
+
+    function stirlingCorr(x) {
+      let x2 = x * x;
+      return (13860.0 - (462.0 - (132.0 - (99.0 - 140.0 / x2) / x2) / x2) / x2) / x / 166320.0;
+    }
+
+    while (true) {
+      let u = rng();
+      u = u * p4;
+      let v = rng();
+
+      if (u <= p1) {
+        ix = Math.trunc(xm - p1 * v + u);
+        break;
+      }
+
+      let x, k;
+      if (u <= p2) {
+        x = xl + (u - p1) / c;
+        v = v * c + 1.0 - Math.abs(xm - x) / p1;
+        if (v > 1.0 || v <= 0.0) continue;
+        ix = Math.trunc(x);
+      } else {
+        if (u <= p3) {
+          ix = Math.trunc(xl + Math.log(v) / xll);
+          if (ix < 0) continue;
+          v = v * (u - p2) * xll;
+        } else {
+          ix = Math.trunc(xr - Math.log(v) / xlr);
+          if (ix > n) continue;
+          v = v * (u - p3) * xlr;
+        }
+      }
+
+      k = Math.abs(ix - m);
+
+      if (k <= 20 || k >= xnpq / 2.0 - 1.0) {
+        let f = 1.0;
+        let r = p / q;
+        let g = (n + 1.0) * r;
+
+        if (m < ix) {
+          for (let i = m + 1; i <= ix; i++) f = f * (g / i - r);
+        } else if (m > ix) {
+          for (let i = ix + 1; i <= m; i++) f = f / (g / i - r);
+        }
+
+        if (v > f) continue;
+        break;
+      }
+
+      let amaxp = (k / xnpq) * (((k * (k / 3.0 + 0.625) + 0.1666666666666) / xnpq) + 0.5);
+      let ynorm = - (k * k) / (2.0 * xnpq);
+      let alv = Math.log(v);
+
+      if (alv < ynorm - amaxp) break;
+      if (alv > ynorm + amaxp) continue;
+
+      let x1 = ix + 1.0;
+      let f1 = fm + 1.0;
+      let z = n + 1.0 - fm;
+      let w = n - ix + 1.0;
+
+      let term =
+        (xm * Math.log(f1 / x1)) +
+        ((n - m + 0.5) * Math.log(z / w)) +
+        ((ix - m) * Math.log((w * p) / (x1 * q))) +
+        stirlingCorr(f1) + stirlingCorr(z) + stirlingCorr(x1) + stirlingCorr(w);
+
+      if ((alv - term) > 0.0) continue;
+      break;
+    }
+  } else {
+    let qn = Math.pow(q, n);
+    let r = p / q;
+    let g = r * (n + 1.0);
+    let done = false;
+
+    while (!done) {
+      ix = 0;
+      let f = qn;
+      let u = rng();
+      done = true;
+
+      while (u >= f) {
+        if (ix > 110) { done = false; break; }
+        u = u - f;
+        ix = ix + 1;
+        f = f * (g / ix - r);
+      }
+    }
+  }
+
+  if (pp > 0.5) ix = n - ix;
+  return ix;
+}
+
+function rollD6Counts(n, rng) {
+  n = Math.floor(n);
+  if (n <= 0) return [0,0,0,0,0,0];
+  let rem = n;
+  let c1 = binom(rem, 1/6, rng); rem -= c1;
+  let c2 = binom(rem, 1/5, rng); rem -= c2;
+  let c3 = binom(rem, 1/4, rng); rem -= c3;
+  let c4 = binom(rem, 1/3, rng); rem -= c4;
+  let c5 = binom(rem, 1/2, rng); rem -= c5;
+  let c6 = rem;
+  return [c1,c2,c3,c4,c5,c6];
+}
+
+function woundNeeded(S, T) {
+  if (S >= 2*T) return 2;
+  if (S > T) return 3;
+  if (S === T) return 4;
+  if (2*S <= T) return 6;
+  return 5;
+}
+function pFromNeeded(needed) { return (7 - needed) / 6.0; }
+
+function effStrength(u, firstRound, isCharger) {
+  let base = u.power_fist ? 8 : (u.nemesis ? 6 : u.S);
+  if (firstRound && u.wound_rule) base += 1;
+  if (firstRound && isCharger && u.black_rage) base += 1;
+  return base;
+}
+function effInitiative(u, firstRound, isCharger) {
+  if (u.power_fist) return 1;
+  let base = u.I;
+  if (firstRound && u.wound_rule) base -= 1;
+  if (firstRound && isCharger && u.black_rage) base += 1;
+  return Math.max(1, base);
+}
+function attacksPerModel(u, firstRound, isCharger) {
+  let a = u.A;
+  if (u.true_grit) a += 1;
+  else if (u.additional_ccw) a += 1;
+  // Charge bonus: +1A, and Berzerk Charge adds +1A more (total +2).
+  // Per user rule: units with True Grit do NOT gain the charge bonus (they already get their +1A from True Grit).
+  if (firstRound && isCharger && !u.true_grit) a += 1 + (u.berzerk_charge ? 1 : 0);
+  return Math.max(0, a);
+}
+function hitNeeded(att, defn, firstRound, isCharger) {
+  // WS-vs-WS rule (flat): if attacker WS is higher than defender WS => 3+, else 4+.
+  // Special overrides remain:
+  // - hit_rule (and RG vs Istvaan) => always 3+
+  // - Blight (on first-round charge) worsens the required roll by +1
+  const always3 = att.hit_rule || (att.raven_guard && defn.istvaan);
+  if (always3) return 3;
+
+  let needed = (att.WS > defn.WS) ? 3 : 4;
+
+  if (firstRound && isCharger && defn.blight) needed += 1;
+
+  return Math.min(6, Math.max(2, needed));
+}
+
+function rollHitsWithExtras(nAttacks, needed, hasAxe, hasDeathSpasm, rng) {
+  let totalHits = 0, totalSixes = 0, totalSelfHits = 0;
+  let pending = Math.floor(nAttacks);
+  let firstBatch = true;
+  while (pending > 0) {
+    const [ones, twos, threes, fours, fives, sixes] = rollD6Counts(pending, rng);
+    if (hasDeathSpasm && !firstBatch) totalSelfHits += ones;
+
+    let misses = 0;
+    if (needed === 3) misses = ones + twos;
+    else if (needed === 4) misses = ones + twos + threes;
+    else if (needed === 5) misses = ones + twos + threes + fours;
+    else misses = ones + twos + threes + fours + fives;
+
+    totalHits += (pending - misses);
+    totalSixes += sixes;
+
+    if (hasAxe || hasDeathSpasm) { pending = sixes; firstBatch = false; }
+    else break;
+  }
+  return [totalHits, totalSixes, totalSelfHits];
+}
+
+function applySaves(wounds, armourNeeded, invNeeded, invLimit, fnpNeeded, fnpAllowed, rng) {
+  wounds = Math.floor(wounds);
+  if (wounds <= 0) return 0;
+  const hasArmour = (armourNeeded !== null && armourNeeded !== undefined);
+  const hasInv = (invNeeded !== null && invNeeded !== undefined);
+
+  if (!hasArmour) {
+    if (!hasInv) return wounds;
+    const wInv = Math.min(wounds, (invLimit === Infinity ? wounds : invLimit));
+    const savedInv = binom(wInv, pFromNeeded(invNeeded), rng);
+    return (wInv - savedInv) + (wounds - wInv);
+  }
+
+  const pArm = pFromNeeded(armourNeeded);
+  const pFnp = (fnpAllowed && fnpNeeded != null) ? pFromNeeded(fnpNeeded) : 0.0;
+  const pArmEff = (pFnp > 0) ? (1.0 - (1.0 - pArm) * (1.0 - pFnp)) : pArm;
+
+  if (!hasInv) {
+    const savedArm = binom(wounds, pArm, rng);
+    let uns = wounds - savedArm;
+    if (pFnp > 0 && uns > 0) uns -= binom(uns, pFnp, rng);
+    return uns;
+  }
+
+  const pInv = pFromNeeded(invNeeded);
+  const useInv = (pInv > pArmEff);
+
+  if (useInv) {
+    const wInv = Math.min(wounds, (invLimit === Infinity ? wounds : invLimit));
+    const savedInv = binom(wInv, pInv, rng);
+    const unsInv = wInv - savedInv;
+
+    const wRem = wounds - wInv;
+    const savedArm = binom(wRem, pArm, rng);
+    let unsArm = wRem - savedArm;
+    if (pFnp > 0 && unsArm > 0) unsArm -= binom(unsArm, pFnp, rng);
+
+    return unsInv + unsArm;
+  } else {
+    const savedArm = binom(wounds, pArm, rng);
+    let uns = wounds - savedArm;
+    if (pFnp > 0 && uns > 0) uns -= binom(uns, pFnp, rng);
+    return uns;
+  }
+}
+
+function resolveDamage(att, defn, normalWounds, rendingWounds, modelsDef, rng, ignoreHeavyCCW=false, shieldApplies=true) {
+  normalWounds = Math.floor(normalWounds);
+  rendingWounds = Math.floor(rendingWounds);
+  if (normalWounds <= 0 && rendingWounds <= 0) return 0;
+
+  const ignoresArmour = att.power_weapon || att.lightning_claw || att.power_fist || att.axe_khorne;
+  const ignoresFnp = ignoresArmour;
+  const dmgPer = att.power_fist ? 2 : 1;
+
+  let armour = defn.Sv;
+  if (armour != null && att.heavy_ccw && !ignoreHeavyCCW && (armour === 2 || armour === 3)) armour = 4;  let inv = null;
+  const invProfile = defn.Ivs;
+  const invShield = (shieldApplies && defn.storm_shield) ? 4 : null;
+  if (invProfile == null) inv = invShield;
+  else if (invShield == null) inv = invProfile;
+  else inv = Math.min(invProfile, invShield);
+
+  // Storm Shield is handled by splitting the attacker's models into "covered" and "uncovered" pools.
+  // Therefore, no per-wound invul limit is used here.
+  const invLimit = (inv != null) ? Infinity : 0;
+  let totalUnsaved = 0;
+  if (normalWounds > 0) {
+    const armourAllowed = !ignoresArmour;
+    const armourUse = armourAllowed ? armour : null;
+    const fnpAllowed = armourAllowed && !ignoresFnp;
+    totalUnsaved += applySaves(normalWounds, armourUse, inv, invLimit, defn.Psv, fnpAllowed, rng);
+  }
+  if (rendingWounds > 0) {
+    totalUnsaved += applySaves(rendingWounds, null, inv, invLimit, null, false, rng);
+  }
+  return totalUnsaved * dmgPer;
+}
+
+function simulateAttackPool(att, defn, modelsAttPool, modelsDef, firstRound, isCharger, rng, shieldAppliesOnDef) {
+  if (modelsAttPool <= 0 || modelsDef <= 0) return [0,0];
+
+  const nAttacks = modelsAttPool * attacksPerModel(att, firstRound, isCharger);
+  if (nAttacks <= 0) return [0,0];
+
+  const needHit = hitNeeded(att, defn, firstRound, isCharger);
+  const [hits, sixes, selfHits] = rollHitsWithExtras(nAttacks, needHit, att.axe_khorne, att.death_spasm, rng);
+
+  const rendW = att.rending ? sixes : 0;
+  const hitsForWound = hits - rendW;
+
+  const S_eff = effStrength(att, firstRound, isCharger);
+  const needW = woundNeeded(S_eff, defn.T);
+  const pW = pFromNeeded(needW);
+
+  let normalWounds = (hitsForWound > 0) ? binom(hitsForWound, pW, rng) : 0;
+  if (att.lightning_claw && hitsForWound > 0) {
+    const fails = hitsForWound - normalWounds;
+    if (fails > 0) normalWounds += binom(fails, pW, rng);
+  }
+
+  const dmgToDef = resolveDamage(att, defn, normalWounds, rendW, modelsDef, rng, false, shieldAppliesOnDef);
+
+  let dmgToSelf = 0;
+  if (selfHits > 0) {
+    const needWs = woundNeeded(S_eff, att.T);
+    const pWs = pFromNeeded(needWs);
+    let sw = binom(selfHits, pWs, rng);
+    if (att.lightning_claw) {
+      const fails = selfHits - sw;
+      if (fails > 0) sw += binom(fails, pWs, rng);
+    }
+    // Self-hits are not "opponent-model assigned"; allow the unit's own shield normally.
+    dmgToSelf = resolveDamage(att, att, sw, 0, modelsAttPool, rng, true, true);
+  }
+
+  return [dmgToDef, dmgToSelf];
+}
+
+function simulateAttack(att, defn, woundsAtt, woundsDef, firstRound, isCharger, rng) {
+  if (woundsAtt <= 0 || woundsDef <= 0) return [0,0];
+  const modelsAtt = Math.ceil(woundsAtt / att.W);
+  const modelsDef = Math.ceil(woundsDef / defn.W);
+  if (modelsAtt <= 0 || modelsDef <= 0) return [0,0];
+
+  // No Storm Shield on the defender: run in one pool, identical to previous behaviour.
+  if (!defn.storm_shield) {
+    return simulateAttackPool(att, defn, modelsAtt, modelsDef, firstRound, isCharger, rng, true);
+  }
+
+  // Storm Shield model-assignment rule:
+  // x = defender models with Storm Shield (here: all defender models)
+  // y = attacker models
+  // The shield can be "held up" against up to x enemy models; all attacks from those models use the shield's invul.
+  // The remaining (y - x) attacker models face only the defender's base invul (if any) / armour as normal.
+  const covered = Math.min(modelsAtt, modelsDef);
+  const uncovered = Math.max(0, modelsAtt - covered);
+
+  const [d1, s1] = simulateAttackPool(att, defn, covered, modelsDef, firstRound, isCharger, rng, true);
+  const [d2, s2] = simulateAttackPool(att, defn, uncovered, modelsDef, firstRound, isCharger, rng, false);
+
+  return [d1 + d2, s1 + s2];
+}
+
+
+function gcdInt(a, b) {
+  a = Math.abs(Math.round(a));
+  b = Math.abs(Math.round(b));
+  if (!isFinite(a) || a <= 0) a = 1;
+  if (!isFinite(b) || b <= 0) b = 1;
+  while (b) {
+    const t = a % b;
+    a = b;
+    b = t;
+  }
+  return a || 1;
+}
+
+function modelCountsLCM(a, b) {
+  const pa = a && a.points != null ? a.points : 1;
+  const pb = b && b.points != null ? b.points : 1;
+  const g = gcdInt(pa, pb);
+  const modelsA = Math.max(1, Math.round(pb) / g);
+  const modelsB = Math.max(1, Math.round(pa) / g);
+  const totalPoints = modelsA * (a.points || 1);
+  return { modelsA, modelsB, totalPoints };
+}
+
+
+function simulateBattle(a, b, maxRounds, rng, seedBase, battleIndex) {
+  const meleeTurnsMax = Math.max(1, Math.min(10, maxRounds | 0));
+
+  const mc = modelCountsLCM(a, b);
+  const modelsA0 = mc.modelsA;
+  const modelsB0 = mc.modelsB;
+
+  // Real start distance in inches (rolled per sim).
+  let distance = rollStartDistance(seedBase >>> 0, a.name, b.name, battleIndex | 0) | 0;
+  if (!isFinite(distance) || distance < 0) distance = 0;
+
+  // Perceived start distance (human measurement / estimation).
+  // Players plan using START_DISTANCE.base, not the rolled real distance.
+  let distPA = START_DISTANCE.base | 0;
+  let distPB = START_DISTANCE.base | 0;
+  if (distance === 0) { distPA = 0; distPB = 0; }
+
+  // Track as pooled wounds (fast). Convert back to "equivalent models" via /W at the end.
+  let woundsA = modelsA0 * a.W;
+  let woundsB = modelsB0 * b.W;
+
+  // Melee state
+  let inMelee = (distance === 0);
+  let firstMeleeRound = true;
+  let charger = null; // "A" | "B" | null
+
+  // Who has the first player turn
+  let activeIsA = (rng() < firstTurnProbA(a, b));
+
+  // Fixed pre-melee cap
+  let preTurns = 0;
+  let meleeTurns = 0;
+
+  while (true) {
+    if (woundsA <= 0 || woundsB <= 0) break;
+
+    if (!inMelee && preTurns >= PRE_MELEE_MAX_TURNS) break;
+    if (inMelee && meleeTurns >= meleeTurnsMax) break;
+
+    let didMeleeThisTurn = false;
+
+    if (!inMelee) {
+      const att = activeIsA ? a : b;
+      const defn = activeIsA ? b : a;
+      const isAttA = !!activeIsA;
+
+      const wAtt = isAttA ? woundsA : woundsB;
+      const wDef = isAttA ? woundsB : woundsA;
+
+      // Perceived distance from each side's perspective
+      const dPAtt0 = isAttA ? distPA : distPB;
+      const dPDef0 = isAttA ? distPB : distPA;
+
+      // Decide move + charge intent using perceived distance.
+      const act = chooseMoveAndIntent(att, defn, wAtt, wDef, dPAtt0, dPDef0);
+      const mvMax = moveMaxInches(att);
+      let mv = iClamp(act && act.move != null ? act.move : 0, 0, mvMax);
+
+      // Forced interaction: if you cannot shoot (stationary) and cannot charge, you may not stand still.
+      // Prefer the minimum move needed to get into stationary shooting range next turn (if applicable).
+      if (mv === 0 && distance > 0) {
+        const dPHold = dPAtt0|0;
+        const canChargeHold = dPHold > 0 && dPHold <= 6;
+
+        const wKeyHold = inferRangedWeaponKey(att);
+        const wHold = wKeyHold ? RANGED_WEAPONS[wKeyHold] : null;
+        const canShootHold = wHold ? (shotsPerModelAtDistance(wHold, dPHold, false) > 0) : false;
+
+        if (!canChargeHold && !canShootHold) {
+          let want = mvMax|0;
+          if (wHold) {
+            const bestBand = bestStationaryBand(wHold);
+            const maxStat = bestBand ? (bestBand.max|0) : (weaponMaxRange(wHold)|0);
+            if (maxStat > 0) want = iClamp((dPHold - maxStat) | 0, 1, mvMax);
+          }
+          mv = iClamp(want|0, 1, mvMax);
+        }
+      }
+
+      // Apply movement to real + both perceived distances (movement itself is measured).
+      distance = Math.max(0, (distance - mv) | 0);
+      distPA = Math.max(0, (distPA - mv) | 0);
+      distPB = Math.max(0, (distPB - mv) | 0);
+
+      const moved = (mv > 0);
+      const dPAtt = isAttA ? distPA : distPB;
+
+      // 2) Shooting attempt happens only if the attacker believes they are in range.
+      const wKey = inferRangedWeaponKey(att);
+      const w = wKey ? RANGED_WEAPONS[wKey] : null;
+
+      let attemptedShoot = false;
+      if (w && distance > 0) {
+        const spmPer = shotsPerModelAtDistance(w, dPAtt, moved);
+        attemptedShoot = (spmPer > 0);
+      }
+
+      if (attemptedShoot) {
+        const dmgShoot = simulateShooting(att, defn, wAtt, wDef, distance, moved, rng);
+        if (dmgShoot > 0) {
+          if (isAttA) woundsB = Math.max(0, woundsB - dmgShoot);
+          else woundsA = Math.max(0, woundsA - dmgShoot);
+        }
+
+        // Learning effect: if they expected to shoot but are actually out of range (0 shots possible),
+        // perceived distance becomes real distance.
+        if (w) {
+          const spmReal = shotsPerModelAtDistance(w, distance, moved);
+          if (spmReal <= 0) {
+            if (isAttA) distPA = distance;
+            else distPB = distance;
+          }
+        }
+      }
+
+      if (woundsA <= 0 || woundsB <= 0) break;
+
+      // 3) Charge attempt if the attacker intends it (based on perceived distance <= 6")
+      if (act && act.wantCharge && dPAtt > 0 && dPAtt <= 6) {
+        if (distance > 0 && distance <= 6) {
+          // Charge succeeds -> enter melee
+          inMelee = true;
+          distance = 0;
+          distPA = 0;
+          distPB = 0;
+          charger = isAttA ? "A" : "B";
+
+          const chargerA = (charger === "A");
+          const chargerB = (charger === "B");
+
+          const Ia = effInitiative(a, firstMeleeRound, firstMeleeRound && chargerA);
+          const Ib = effInitiative(b, firstMeleeRound, firstMeleeRound && chargerB);
+
+          for (let step = Math.max(Ia, Ib); step >= 1; step--) {
+            if (woundsA <= 0 || woundsB <= 0) break;
+
+            let daToB = 0, sa = 0, dbToA = 0, sb = 0;
+
+            if (step === Ia && woundsA > 0 && woundsB > 0) {
+              [daToB, sa] = simulateAttack(a, b, woundsA, woundsB, firstMeleeRound, firstMeleeRound && chargerA, rng);
+            }
+            if (step === Ib && woundsB > 0 && woundsA > 0) {
+              [dbToA, sb] = simulateAttack(b, a, woundsB, woundsA, firstMeleeRound, firstMeleeRound && chargerB, rng);
+            }
+
+            woundsA = Math.max(0, woundsA - dbToA - sa);
+            woundsB = Math.max(0, woundsB - daToB - sb);
+          }
+
+          firstMeleeRound = false;
+          didMeleeThisTurn = true;
+        } else {
+          // Charge fails (misjudged distance) -> learn real distance
+          if (isAttA) distPA = distance;
+          else distPB = distance;
+        }
+      } else {
+        // If movement closed to 0" without an intended charge, treat as melee contact without charger.
+        if (distance === 0) {
+          inMelee = true;
+          distPA = 0;
+          distPB = 0;
+          charger = null;
+
+          const Ia = effInitiative(a, firstMeleeRound, false);
+          const Ib = effInitiative(b, firstMeleeRound, false);
+
+          for (let step = Math.max(Ia, Ib); step >= 1; step--) {
+            if (woundsA <= 0 || woundsB <= 0) break;
+
+            let daToB = 0, sa = 0, dbToA = 0, sb = 0;
+
+            if (step === Ia && woundsA > 0 && woundsB > 0) {
+              [daToB, sa] = simulateAttack(a, b, woundsA, woundsB, firstMeleeRound, false, rng);
+            }
+            if (step === Ib && woundsB > 0 && woundsA > 0) {
+              [dbToA, sb] = simulateAttack(b, a, woundsB, woundsA, firstMeleeRound, false, rng);
+            }
+
+            woundsA = Math.max(0, woundsA - dbToA - sa);
+            woundsB = Math.max(0, woundsB - daToB - sb);
+          }
+
+          firstMeleeRound = false;
+          didMeleeThisTurn = true;
+        }
+      }
+    } else {
+      // Ongoing melee: fight each player turn (both sides strike by initiative)
+      const chargerA = (firstMeleeRound && charger === "A");
+      const chargerB = (firstMeleeRound && charger === "B");
+
+      const Ia = effInitiative(a, firstMeleeRound, chargerA);
+      const Ib = effInitiative(b, firstMeleeRound, chargerB);
+
+      for (let step = Math.max(Ia, Ib); step >= 1; step--) {
+        if (woundsA <= 0 || woundsB <= 0) break;
+
+        let daToB = 0, sa = 0, dbToA = 0, sb = 0;
+
+        if (step === Ia && woundsA > 0 && woundsB > 0) {
+          [daToB, sa] = simulateAttack(a, b, woundsA, woundsB, firstMeleeRound, chargerA, rng);
+        }
+        if (step === Ib && woundsB > 0 && woundsA > 0) {
+          [dbToA, sb] = simulateAttack(b, a, woundsB, woundsA, firstMeleeRound, chargerB, rng);
+        }
+
+        woundsA = Math.max(0, woundsA - dbToA - sa);
+        woundsB = Math.max(0, woundsB - daToB - sb);
+      }
+
+      firstMeleeRound = false;
+      didMeleeThisTurn = true;
+    }
+
+    if (didMeleeThisTurn) meleeTurns++;
+    else preTurns++;
+
+    // Next player's turn
+    activeIsA = !activeIsA;
+
+    if (woundsA <= 0 || woundsB <= 0) break;
+  }
+
+  // Evaluate by remaining points (derived from surviving models).
+  const survA = Math.max(0, woundsA) / a.W;
+  const survB = Math.max(0, woundsB) / b.W;
+
+  const remPointsA = survA * a.points;
+  const remPointsB = survB * b.points;
+  const totalPoints = (modelsA0 * a.points); // equals modelsB0 * b.points due to LCM
+
+  if (totalPoints <= 1e-12) return 0.0;
+  return ((remPointsA - remPointsB) / totalPoints) * 100.0;
+}
+
+function fmt(x) {
+  const s = (Math.round(x * 10) / 10).toFixed(1);
+  return (x >= 0 ? "+" : "") + s + "%";
+}
+function fmtRatio(x) {
+  if (!isFinite(x)) return "∞";
+  // show 3 decimal places (e.g., 1.234×)
+  const s = (Math.round(x * 1000) / 1000).toFixed(3);
+  return (x >= 1 ? "+" : "") + s + "×";
+}
+function unitSummary(u) {
+  const sv = (u.Sv == null ? "—" : (u.Sv + "+"));
+  const iv = (u.Ivs == null ? "—" : (u.Ivs + "+"));
+  const fnp = (u.Psv == null ? "—" : (u.Psv + "+"));
+  return `${u.points}p | WS${u.WS} S${u.S} T${u.T} W${u.W} I${u.I} A${u.A} | Sv ${sv} | Inv ${iv} | FnP ${fnp}`;
+}
+function setProgress(pct, leftText, rightText) {
+  $("barFill").style.width = Math.max(0, Math.min(100, pct)) + "%";
+  $("statusLeft").textContent = leftText || "";
+  $("statusRight").textContent = rightText || "—";
+}
+function makeWinItem(idx, oppName, win, maxAbs) {
+  const item = document.createElement("div");
+  item.className = "item";
+
+  const label = document.createElement("div");
+  label.className = "label";
+  label.title = oppName;
+  label.textContent = `B${idx+1}: ${oppName}`;
+
+  const bar = document.createElement("div");
+  bar.className = "hbar";
+  const neg = document.createElement("div");
+  neg.className = "fill-neg";
+  const pos = document.createElement("div");
+  pos.className = "fill-pos";
+
+  const w = Math.min(50, (Math.abs(win) / Math.max(1e-9, maxAbs)) * 50);
+  if (win < 0) neg.style.width = w + "%";
+  else pos.style.width = w + "%";
+
+  bar.appendChild(neg);
+  bar.appendChild(pos);
+
+  const val = document.createElement("div");
+  val.className = "value " + (win >= 0 ? "good" : "bad");
+  val.textContent = fmt(win);
+
+  // refs for fast live updates
+  item._neg = neg;
+  item._pos = pos;
+  item._val = val;
+
+  item.appendChild(label);
+  item.appendChild(bar);
+  item.appendChild(val);
+  return item;
+}
+function makeRatioItem(idx, oppName, ratio, maxDist) {
+  const item = document.createElement("div");
+  item.className = "item";
+
+  const label = document.createElement("div");
+  label.className = "label";
+  label.title = oppName;
+  label.textContent = `B${idx+1}: ${oppName}`;
+
+  const bar = document.createElement("div");
+  bar.className = "hbar";
+  const neg = document.createElement("div");
+  neg.className = "fill-neg";
+  const pos = document.createElement("div");
+  pos.className = "fill-pos";
+
+  const d = ratio - 1.0;
+  const w = Math.min(50, (Math.abs(d) / Math.max(1e-9, maxDist)) * 50);
+  if (d < 0) neg.style.width = w + "%";
+  else pos.style.width = w + "%";
+
+  bar.appendChild(neg);
+  bar.appendChild(pos);
+
+  const val = document.createElement("div");
+  val.className = "value " + (ratio >= 1 ? "good" : "bad");
+  val.textContent = fmtRatio(ratio);
+
+  // refs for fast live updates
+  item._neg = neg;
+  item._pos = pos;
+  item._val = val;
+
+  item.appendChild(label);
+  item.appendChild(bar);
+  item.appendChild(val);
+  return item;
+}
+
+function updateWinItem(item, win, maxAbs) {
+  const w = Math.min(50, (Math.abs(win) / Math.max(1e-9, maxAbs)) * 50);
+  if (win < 0) {
+    item._neg.style.width = w + "%";
+    item._pos.style.width = "0%";
+  } else {
+    item._pos.style.width = w + "%";
+    item._neg.style.width = "0%";
+  }
+  item._val.className = "value " + (win >= 0 ? "good" : "bad");
+  item._val.textContent = fmt(win);
+}
+
+function updateRatioItem(item, ratio, maxDist) {
+  const d = ratio - 1.0;
+  const w = Math.min(50, (Math.abs(d) / Math.max(1e-9, maxDist)) * 50);
+  if (d < 0) {
+    item._neg.style.width = w + "%";
+    item._pos.style.width = "0%";
+  } else {
+    item._pos.style.width = w + "%";
+    item._neg.style.width = "0%";
+  }
+  item._val.className = "value " + (ratio >= 1 ? "good" : "bad");
+  item._val.textContent = fmtRatio(ratio);
+}
+
+
+async function computeVsAll(att, trials, maxRounds, seedBase, units, progressCb) {
+  const out = new Array(units.length);
+  for (let i = 0; i < units.length; i++) {
+    const opp = units[i];
+    const seed = (xfnv1a(att.name + "|" + opp.name) ^ seedBase) >>> 0;
+    const rng = mulberry32(seed);
+
+    let sum = 0;
+    for (let t = 0; t < trials; t++) sum += simulateBattle(att, opp, maxRounds, rng, seedBase, t);
+    out[i] = sum / trials;
+
+    if (progressCb) progressCb(i + 1, units.length);
+    if ((i % 2) === 0) await new Promise(r => setTimeout(r, 0));
+  }
+  return out;
+}
+
+
+
+let RUN_TOKEN = 0; // increment to cancel an active run
+
+function resetResultsUI() {
+  // Keep current selections, reset displayed results/progress to zero.
+  const aName = $("unitA") ? $("unitA").value : "";
+  const bName = $("unitB") ? $("unitB").value : "";
+  const a = UNITS.find(u => u.name === aName);
+  const b = UNITS.find(u => u.name === bName);
+
+  if (a) {
+    $("aSub").textContent = a.name;
+    $("aMeta").textContent = unitSummary(a);
+  }
+  if (b) {
+    $("bSub").textContent = b.name;
+    $("bMeta").textContent = unitSummary(b);
+  }
+
+  const listA = $("listA");
+  const listB = $("listB");
+  const listR = $("listR");
+  if (listA) listA.innerHTML = "";
+  if (listB) listB.innerHTML = "";
+  if (listR) listR.innerHTML = "";
+
+  const maxAbs = 100;
+  const ratioMaxDist = 1.0;
+  if (listA && listB && listR) {
+    for (let i = 0; i < UNITS.length; i++) {
+      listA.appendChild(makeWinItem(i, UNITS[i].name, 0, maxAbs));
+      listB.appendChild(makeWinItem(i, UNITS[i].name, 0, maxAbs));
+      listR.appendChild(makeRatioItem(i, UNITS[i].name, 1.0, ratioMaxDist));
+    }
+  }
+
+  setProgress(0, "Ready.", "—");
+  $("summaryOut").textContent = "Not calculated yet.";
+
+  // Re-enable Run if selections are valid
+  validateReady();
+}
+
+function stopAndReset() {
+  RUN_TOKEN++;
+  resetResultsUI();
+}
+
+async function run() {
+  const btn = $("runBtn");
+  const stopBtn = $("stopBtn");
+
+  const myToken = ++RUN_TOKEN;
+
+
+  const aName = $("unitA").value;
+  const bName = $("unitB").value;
+
+  const trials = Math.max(1, Math.floor(Number($("trials").value || 1000)));
+  const maxRounds = Math.min(10, Math.max(1, Math.floor(Number($("maxRounds").value || 3))));
+  const seedBase = randomSeed32();
+const a = UNITS.find(u => u.name === aName);
+  const b = UNITS.find(u => u.name === bName);
+
+  if (!a || !b) {
+    setProgress(0, "Select units.", "Please pick a unit for both selections.");
+    $("summaryOut").textContent = "Not calculated yet.";
+    btn.disabled = false;
+    return;
+  }
+
+  $("aSub").textContent = a.name;
+  $("bSub").textContent = b.name;
+  $("aMeta").textContent = unitSummary(a);
+  $("bMeta").textContent = unitSummary(b);
+
+  btn.disabled = true;
+  if (stopBtn) stopBtn.disabled = false;
+
+  const start = new Date();
+  const hh = String(start.getHours()).padStart(2, "0");
+  const mm = String(start.getMinutes()).padStart(2, "0");
+  const ss = String(start.getSeconds()).padStart(2, "0");
+  const stamp = `${hh}:${mm}:${ss}`;
+
+  // Build result lists once, then live-update values.
+  const listA = $("listA"); listA.innerHTML = "";
+  const listB = $("listB"); listB.innerHTML = "";
+  const listR = $("listR"); listR.innerHTML = "";
+
+  const maxAbs = 100; // score is bounded to [-100..100]
+  const ratioMaxDist = 1.0; // 1.0 => bar reaches full at ratio 0.0 or 2.0 (clamped)
+
+  const itemsA = new Array(UNITS.length);
+  const itemsB = new Array(UNITS.length);
+  const itemsR = new Array(UNITS.length);
+
+  for (let i = 0; i < UNITS.length; i++) {
+    itemsA[i] = makeWinItem(i, UNITS[i].name, 0, maxAbs);
+    itemsB[i] = makeWinItem(i, UNITS[i].name, 0, maxAbs);
+    itemsR[i] = makeRatioItem(i, UNITS[i].name, 1.0, ratioMaxDist);
+    listA.appendChild(itemsA[i]);
+    listB.appendChild(itemsB[i]);
+    listR.appendChild(itemsR[i]);
+  }
+
+  // Running stats per opponent
+  const statsA = Array.from({ length: UNITS.length }, () => ({ sum: 0, n: 0 }));
+  const statsB = Array.from({ length: UNITS.length }, () => ({ sum: 0, n: 0 }));
+
+  // Head-to-head stats
+  const seedH2H = (xfnv1a(a.name + "|" + b.name + "|HEAD2HEAD") ^ seedBase) >>> 0;
+  const rngH2H = mulberry32(seedH2H);
+  let h2hSum = 0, h2hN = 0;
+
+  // Per-pair RNGs (deterministic across interleaving)
+  const pairRngA = new Array(UNITS.length);
+  const pairRngB = new Array(UNITS.length);
+  for (let i = 0; i < UNITS.length; i++) {
+    const opp = UNITS[i];
+    const seedA = (xfnv1a(a.name + "|" + opp.name) ^ seedBase) >>> 0;
+    const seedB = (xfnv1a(b.name + "|" + opp.name) ^ seedBase) >>> 0;
+    pairRngA[i] = mulberry32(seedA);
+    pairRngB[i] = mulberry32(seedB);
+  }
+
+  // Randomly interleave "all combinations": (A1 vs each opponent), (A2 vs each opponent), plus head-to-head.
+  const pairs = [];
+  for (let i = 0; i < UNITS.length; i++) {
+    pairs.push({ kind: "A", i, remaining: trials });
+    pairs.push({ kind: "B", i, remaining: trials });
+  }
+  pairs.push({ kind: "H2H", i: -1, remaining: trials });
+
+  const active = pairs.map((_, idx) => idx);
+  const rngPick = mulberry32((seedBase ^ 0x9e3779b9) >>> 0);
+
+  const totalSims = trials * (UNITS.length * 2 + 1);
+  let done = 0;
+
+  const dirty = new Set();
+  let lastPaint = performance.now();
+  let lastSummary = performance.now();
+
+  function avgOrZero(st) { return st.n > 0 ? (st.sum / st.n) : 0; }
+
+  function repaint(forceAll=false) {
+    if (myToken !== RUN_TOKEN) return;
+    if (forceAll) {
+      for (let i = 0; i < UNITS.length; i++) dirty.add(i);
+    }
+
+    // update only the touched rows (cheap + nice flicker)
+    for (const i of dirty) {
+      const wA = avgOrZero(statsA[i]);
+      const wB = avgOrZero(statsB[i]);
+      updateWinItem(itemsA[i], wA, maxAbs);
+      updateWinItem(itemsB[i], wB, maxAbs);
+
+      // ratio per opponent
+      const idxA = 100 + wA;
+      const idxB = 100 + wB;
+      const r = (idxB <= 1e-9) ? Infinity : (idxA / idxB);
+      updateRatioItem(itemsR[i], r, ratioMaxDist);
+    }
+    dirty.clear();
+
+    const pct = (done / totalSims) * 100;
+    setProgress(
+      pct,
+      "Simulating (random order)…",
+      `${trials} sims/target · ${done}/${totalSims} · start ${stamp}`
+    );
+
+    // update summary occasionally (avoid heavy churn)
+    const now = performance.now();
+    if (now - lastSummary > 250 || done === totalSims) {
+      const meanA = statsA.reduce((acc, st) => acc + avgOrZero(st), 0) / statsA.length;
+      const meanB = statsB.reduce((acc, st) => acc + avgOrZero(st), 0) / statsB.length;
+      const h2h = h2hN > 0 ? (h2hSum / h2hN) : 0;
+
+      const lines = [];
+      lines.push(`A1: ${a.name}`);
+      lines.push(`A2: ${b.name}`);
+      lines.push("");
+      lines.push(`Sims/Target: ${trials} · Pre-melee turns: ${PRE_MELEE_MAX_TURNS} (fixed) · Melee turns: ${maxRounds} · Seed: ${seedBase}`);
+      const sdText = (START_DISTANCE.base === 0)
+        ? 'Close Combat (0")'
+        : `${START_DISTANCE.base}–${START_DISTANCE.base + 2}" (rolled per sim)`;
+      lines.push(`Start distance: ${sdText}`);
+      lines.push("");
+      lines.push(`Avg score A1 vs all (live): ${(Math.round(meanA*10)/10).toFixed(1)}%`);
+      lines.push(`Avg score A2 vs all (live): ${(Math.round(meanB*10)/10).toFixed(1)}%`);
+      lines.push(`Head-to-Head score A1 vs A2 (live): ${(Math.round(h2h*10)/10).toFixed(1)}%`);
+      lines.push("");
+      lines.push(`Ratio (per opponent): (100+ScoreA1)/(100+ScoreA2)  (equal=1.000×)`);
+      $("summaryOut").textContent = lines.join("\n");
+      lastSummary = now;
+    }
+  }
+
+  setProgress(0, "Starting…", `${trials} sims/target · 0/${totalSims} · start ${stamp}`);
+  $("summaryOut").textContent = "Running… (live-updating results)";
+
+  // Main loop: pick a random remaining pair each time, simulate exactly 1 battle, update that row.
+  while (active.length > 0) {
+    if (myToken !== RUN_TOKEN) return;
+    // batch a bit for speed, then yield to keep UI responsive
+    const batchSize = 25;
+    for (let step = 0; step < batchSize && active.length > 0; step++) {
+      if (myToken !== RUN_TOKEN) return;
+      const pickIdx = Math.floor(rngPick() * active.length);
+      const pairIdx = active[pickIdx];
+      const p = pairs[pairIdx];
+
+      if (p.kind === "A") {
+        const opp = UNITS[p.i];
+        const tIndex = statsA[p.i].n;
+        const v = simulateBattle(a, opp, maxRounds, pairRngA[p.i], seedBase, tIndex);
+        statsA[p.i].sum += v;
+        statsA[p.i].n += 1;
+        dirty.add(p.i);
+      } else if (p.kind === "B") {
+        const opp = UNITS[p.i];
+        const tIndex = statsB[p.i].n;
+        const v = simulateBattle(b, opp, maxRounds, pairRngB[p.i], seedBase, tIndex);
+        statsB[p.i].sum += v;
+        statsB[p.i].n += 1;
+        dirty.add(p.i);
+      } else { // H2H
+        const tIndex = h2hN;
+        const v = simulateBattle(a, b, maxRounds, rngH2H, seedBase, tIndex);
+        h2hSum += v;
+        h2hN += 1;
+      }
+
+      p.remaining -= 1;
+      done += 1;
+
+      if (p.remaining <= 0) {
+        // remove from active in O(1)
+        active[pickIdx] = active[active.length - 1];
+        active.pop();
+      }
+    }
+
+    const now = performance.now();
+    const hidden = document.hidden;
+    const paintEvery = hidden ? 400 : 16;
+
+    if (now - lastPaint > paintEvery || done === totalSims) {
+      repaint(false);
+      lastPaint = now;
+      // In background tabs, requestAnimationFrame can pause completely — this won't.
+      await yieldToBrowser();
+    } else if ((done % 5000) === 0) {
+      // extra yield for very large runs (also works in background)
+      await yieldToBrowser();
+    }
+  }
+  if (myToken !== RUN_TOKEN) return;
+
+  // final repaint (ensures everything is up to date)
+  repaint(true);
+  setProgress(100, "Done.", `${trials} sims/target · ${totalSims}/${totalSims} · start ${stamp}`);
+  btn.disabled = false;
+  validateReady();
+}
+
+const UNIT_NAMES = UNITS.map(u => u.name);
+
+// Smarter search: token-based AND match, ignores punctuation/parentheses and word order.
+function normalizeForSearch(s) {
+  return (s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+const UNIT_NAMES_NORM = UNIT_NAMES.map(normalizeForSearch);
+const UNIT_NAME_SET = new Set(UNIT_NAMES);
+
+function fillUnitSelect(selectEl, query, preferredValue) {
+  const q = normalizeForSearch(query);
+  const tokens = q ? q.split(/\s+/).filter(Boolean) : [];
+  const keep = (preferredValue != null ? preferredValue : selectEl.value);
+
+  selectEl.innerHTML = "";
+
+  let first = null;
+  let hasKeep = false;
+
+  for (let i = 0; i < UNIT_NAMES.length; i++) {
+    if (tokens.length) {
+      const hay = UNIT_NAMES_NORM[i];
+      let ok = true;
+      for (let t of tokens) {
+        if (!hay.includes(t)) { ok = false; break; }
+      }
+      if (!ok) continue;
+    }
+
+    const name = UNIT_NAMES[i];
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    selectEl.appendChild(opt);
+
+    if (first === null) first = name;
+    if (name === keep) hasKeep = true;
+  }
+
+  if (hasKeep) {
+    selectEl.value = keep;
+  } else if (first !== null) {
+    selectEl.value = first;
+  } else {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "No matches";
+    opt.disabled = true;
+    opt.selected = true;
+    selectEl.appendChild(opt);
+  }
+}
+
+function validateReady() {
+  const btn = $("runBtn");
+  const ok = UNIT_NAME_SET.has($("unitA").value) && UNIT_NAME_SET.has($("unitB").value);
+  btn.disabled = !ok;
+}
+
+function wireUnitSearch(selectEl, inputEl) {
+  if (!inputEl) return;
+
+  inputEl.addEventListener("input", () => {
+    const keep = selectEl.value;
+    fillUnitSelect(selectEl, inputEl.value, keep);
+    validateReady();
+  });
+
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (selectEl.value) inputEl.value = selectEl.value;
+      selectEl.focus();
+    } else if (e.key === "Escape") {
+      inputEl.value = "";
+      fillUnitSelect(selectEl, "", selectEl.value);
+      validateReady();
+    }
+  });
+
+  selectEl.addEventListener("change", () => {
+    if (selectEl.value) inputEl.value = selectEl.value;
+    validateReady();
+  });
+}
+
+
+
+function randomizeSelections() {
+  const aSel = $("unitA");
+  const bSel = $("unitB");
+  const aSearch = $("unitASearch");
+  const bSearch = $("unitBSearch");
+  if (!aSel || !bSel || UNIT_NAMES.length < 2) return;
+
+  // Pick two distinct random units
+  const i = Math.floor(Math.random() * UNIT_NAMES.length);
+  let j = Math.floor(Math.random() * (UNIT_NAMES.length - 1));
+  if (j >= i) j++;
+
+  const nameA = UNIT_NAMES[i];
+  const nameB = UNIT_NAMES[j];
+
+  // Clear filters so any unit can be selected
+  if (aSearch) aSearch.value = "";
+  if (bSearch) bSearch.value = "";
+
+  fillUnitSelect(aSel, "", nameA);
+  fillUnitSelect(bSel, "", nameB);
+
+  // Keep search inputs empty; selections are visible in the dropdowns
+  if (aSearch) aSearch.value = "";
+  if (bSearch) bSearch.value = "";
+
+  // Reset results/progress for the new matchup
+  stopAndReset();
+}
+
+
+
+function init() {
+  const aSel = $("unitA");
+  const bSel = $("unitB");
+  const aSearch = $("unitASearch");
+  const bSearch = $("unitBSearch");
+
+  // Initial population + defaults
+  fillUnitSelect(aSel, "", UNIT_NAMES[0] || "");
+  fillUnitSelect(bSel, "", UNIT_NAMES[1] || UNIT_NAMES[0] || "");
+
+  const a = UNITS.find(u => u.name === aSel.value);
+  const b = UNITS.find(u => u.name === bSel.value);
+
+  if (a) {
+    $("aSub").textContent = a.name;
+    $("aMeta").textContent = unitSummary(a);
+  }
+  if (b) {
+    $("bSub").textContent = b.name;
+    $("bMeta").textContent = unitSummary(b);
+  }
+
+  // Start with empty search inputs (no prefilled unit names)
+  if (aSearch) aSearch.value = "";
+  if (bSearch) bSearch.value = "";
+
+  wireUnitSearch(aSel, aSearch);
+  wireUnitSearch(bSel, bSearch);
+  $("runBtn").addEventListener("click", run);
+  const rb = $("randomSelectBtn");
+  if (rb) rb.addEventListener("click", randomizeSelections);
+  const sb = $("stopBtn");
+  if (sb) sb.addEventListener("click", stopAndReset);
+  initFirstTurnUI();
+  initStartDistanceUI();
+  validateReady();
+}
+init();
+</script>
+</body>
+</html>
